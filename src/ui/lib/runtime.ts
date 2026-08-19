@@ -19,7 +19,7 @@ export async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
 /**
  * Returns the active tab when it is a webpage, otherwise falls back to the
  * most recently accessed http(s) tab in the current window (so running an
- * experiment works while the ELX Studio tab is focused).
+ * experiment works while the ELX Forge tab is focused).
  */
 export async function getBestTargetTab(): Promise<chrome.tabs.Tab | null> {
   const active = await getActiveTab();

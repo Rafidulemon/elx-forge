@@ -2,7 +2,7 @@
 
 You are a senior Chrome Extension architect and TypeScript engineer.
 
-Build a production-quality Chrome Extension (Manifest V3) named **ELX Studio**.
+Build a production-quality Chrome Extension (Manifest V3) named **ELX Forge**.
 
 The goal is to create a developer tool for CRO engineers that injects custom JavaScript and CSS into websites for A/B testing, debugging, prototyping, and UI customization.
 

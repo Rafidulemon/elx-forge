@@ -26,7 +26,7 @@ for (const [name, entry] of Object.entries(entries)) {
       emptyOutDir: false,
       sourcemap: false,
       lib: {
-        name: 'ElxStudio',
+        name: 'ElxForge',
         entry,
         formats: ['iife'],
         fileName: () => `${name}.js`,

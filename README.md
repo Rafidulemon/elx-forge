@@ -1,4 +1,4 @@
-# ELX Studio
+# ELX Forge
 
 A production-grade Chrome Extension (Manifest V3) for CRO engineers — inject custom
 JS & CSS into any website for A/B testing, debugging and prototyping.
@@ -28,17 +28,16 @@ JS & CSS into any website for A/B testing, debugging and prototyping.
 | Messaging | `runtime.sendMessage` RPCs, long-lived ports (console relay), `window.postMessage` bridge |
 | Injection | `chrome.userScripts` (CSP-exempt USER_SCRIPT world) with `scripting.executeScript` fallback + `<style>` injection |
 | Linting / Format | ESLint, Prettier |
-| Icons | Generated PNGs (16/32/48/128) |
+| Icons | Custom PNG icon + logo (`public/icons/icon.png`, `public/icons/logo.png`) |
 
 ## Project Structure
 
 ```
 ├── public/
 │   ├── manifest.json          # MV3 manifest
-│   └── icons/                 # extension icons (16/32/48/128)
+│   └── icons/                 # extension icon (icon.png) + UI logo (logo.png)
 ├── scripts/
-│   ├── build-scripts.mjs      # builds background/content/injected as IIFE
-│   └── gen-icons.mjs          # generates icons
+│   └── build-scripts.mjs      # builds background/content/injected as IIFE
 ├── src/
 │   ├── shared/                # types, constants, storage services, utils, helpers
 │   ├── injected/              # MAIN-world bridge script (console patch + window.ELX)
@@ -67,7 +66,6 @@ Other scripts:
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint
 npm run format       # prettier --write
-npm run icons        # regenerate icons
 npm run watch:ui     # rebuild UI on changes
 ```
 
@@ -76,14 +74,14 @@ npm run watch:ui     # rebuild UI on changes
 1. Open `chrome://extensions` in Chrome.
 2. Toggle **Developer mode** (top-right corner).
 3. Click **Load unpacked** and select the `dist` folder of this repository.
-4. Pin the **ELX Studio** icon from the puzzle icon menu.
+4. Pin the **ELX Forge** icon from the puzzle icon menu.
 
 ### Quick test
 
 1. Open a website (e.g. `https://example.com`) in its own tab.
-2. Click the extension icon → **Open ELX Studio**.
+2. Click the extension icon → **Open ELX Forge**.
 3. Create a project (name + domain) → open it → **New Experiment**.
-4. Add JS (e.g. `console.log("Testing ELX Studio")`) and/or CSS (e.g. `body { background: lightyellow; }`).
+4. Add JS (e.g. `console.log("Testing ELX Forge")`) and/or CSS (e.g. `body { background: lightyellow; }`).
 5. Click **Run** — the active page (or the most recently used webpage tab) gets the changes immediately.
 6. Switch to the editor's **Console** tab to see `bridge:ready`, `js:inject`, `css:inject` events and your `console.log` output.
 
@@ -91,7 +89,7 @@ npm run watch:ui     # rebuild UI on changes
 
 1. In an experiment, open the **URL Rules** tab.
 2. Add a rule (`Starts with`, `Contains`, `Regex`, `Wildcard`, …) matching the target page and click **Test**.
-3. Reload the target page — ELX Studio auto-injects the experiment and the toolbar badge shows the match count.
+3. Reload the target page — ELX Forge auto-injects the experiment and the toolbar badge shows the match count.
 
 ### Notes
 
@@ -103,7 +101,7 @@ npm run watch:ui     # rebuild UI on changes
 
 The `chrome.userScripts` API powers injection on strict-CSP sites and requires a one-time toggle:
 
-1. Open `chrome://extensions` and click **Details** on the ELX Studio card.
+1. Open `chrome://extensions` and click **Details** on the ELX Forge card.
 2. Toggle on **Allow User Scripts**.
    - On Chrome older than 138, the extension instead requires **Developer mode** to be enabled (top-right of `chrome://extensions`).
 3. Reload the extension if the toggle was turned on while the service worker was already running.

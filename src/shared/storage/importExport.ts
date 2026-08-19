@@ -63,7 +63,7 @@ export async function importJson(text: string): Promise<ImportResult> {
 
   const data = parsed.data;
   if (!data || typeof data !== 'object' || !('kind' in data)) {
-    result.errors.push('Not an ELX Studio bundle (missing "kind").');
+    result.errors.push('Not an ELX Forge bundle (missing "kind").');
     return result;
   }
 

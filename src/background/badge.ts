@@ -26,9 +26,9 @@ async function refreshBadge(): Promise<void> {
   ).length;
 
   await chrome.action.setBadgeText({ text: count > 0 ? String(count) : '', tabId: tab.id });
-  await chrome.action.setBadgeBackgroundColor({ color: '#58a6ff', tabId: tab.id });
+  await chrome.action.setBadgeBackgroundColor({ color: '#f97316', tabId: tab.id });
   await chrome.action.setTitle({
-    title: count > 0 ? `${count} matching experiment${count > 1 ? 's' : ''} on this page` : 'ELX Studio',
+    title: count > 0 ? `${count} matching experiment${count > 1 ? 's' : ''} on this page` : 'ELX Forge',
     tabId: tab.id,
   });
 }

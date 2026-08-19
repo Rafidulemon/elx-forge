@@ -17,7 +17,7 @@ export default defineConfig({
     emptyOutDir: false,
     sourcemap: false,
     lib: {
-      name: 'ElxStudio',
+      name: 'ElxForge',
       entry: {
         background: resolve(root, 'src/background/index.ts'),
         content: resolve(root, 'src/content/index.ts'),

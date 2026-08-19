@@ -53,7 +53,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
     <Modal open={open} onClose={onClose} title="Import JSON" width="max-w-2xl">
       <div className="flex flex-col gap-3">
         <p className="text-[12px] text-ink-dim">
-          Paste an ELX Studio bundle (exported project or experiment JSON) to import it. Imported
+          Paste an ELX Forge bundle (exported project or experiment JSON) to import it. Imported
           items start inactive and receive fresh IDs.
         </p>
         <div className="flex gap-2">

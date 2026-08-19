@@ -98,8 +98,8 @@ const overlayStyle: Partial<CSSStyleDeclaration> = {
 const boxStyle: Partial<CSSStyleDeclaration> = {
   position: 'fixed',
   display: 'none',
-  border: '2px solid #58a6ff',
-  background: 'rgba(88, 166, 255, 0.15)',
+  border: '2px solid #f97316',
+  background: 'rgba(249, 115, 22, 0.15)',
   borderRadius: '2px',
   boxShadow: '0 0 0 1px rgba(0,0,0,0.4)',
   pointerEvents: 'none',

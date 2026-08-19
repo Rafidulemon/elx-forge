@@ -1,8 +1,8 @@
 {
-  "name": "elx-studio",
+  "name": "elx-forge",
   "private": true,
   "version": "0.1.0",
-  "description": "ELX Studio — Chrome extension for CRO engineers to inject custom JS & CSS into websites for A/B testing, debugging and prototyping.",
+  "description": "ELX Forge — Chrome extension for CRO engineers to inject custom JS & CSS into websites for A/B testing, debugging and prototyping.",
   "type": "module",
   "scripts": {
     "dev": "npm run build",
@@ -12,8 +12,7 @@
     "watch:ui": "vite build --config vite.config.ui.ts --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"index.html\" \"popup.html\"",
-    "icons": "node scripts/gen-icons.mjs"
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"index.html\" \"popup.html\""
   },
   "dependencies": {
     "monaco-editor": "^0.52.0",

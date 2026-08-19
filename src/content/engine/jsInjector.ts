@@ -48,7 +48,7 @@ export async function executeJs(experiment: Experiment, force = false): Promise<
     event(
       'js:error',
       experiment,
-      'Bridge not ready — the page CSP may be blocking ELX Studio. Check the built-in console.',
+      'Bridge not ready — the page CSP may be blocking ELX Forge. Check the built-in console.',
     );
   }
 

@@ -21,7 +21,7 @@ export function StatusBar() {
     <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-line bg-panel px-3 text-[11px] text-ink-dim">
       <span className="flex items-center gap-1.5">
         <span className="inline-block h-2 w-2 rounded-full bg-ok" />
-        ELX Studio v{APP_VERSION}
+        ELX Forge v{APP_VERSION}
       </span>
       <span className="flex-1 truncate text-right">
         {tab ? (

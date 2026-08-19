@@ -21,9 +21,7 @@ function Sidebar() {
   return (
     <aside className="flex flex-col border-r border-line bg-panel">
       <div className="flex h-[52px] items-center gap-2 border-b border-line px-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded bg-brand text-[13px] font-bold text-[#0b1220]">
-          E
-        </div>
+        <img src="/icons/logo.png" alt="ELX Forge" className="h-7 w-7 shrink-0 object-contain" />
         <div className="leading-tight">
           <p className="text-[12px] font-semibold">{APP_NAME}</p>
           <p className="text-[10px] text-ink-dim">v{APP_VERSION}</p>

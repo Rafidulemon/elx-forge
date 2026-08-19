@@ -134,7 +134,7 @@ export function ConsolePanel({ className }: ConsolePanelProps) {
             <IconBug width={20} height={20} className="opacity-50" />
             <p className="text-[12px]">No console output yet</p>
             <p className="flex items-center gap-1 text-[11px] opacity-80">
-              <IconInfo width={12} height={12} /> Capture starts when a page loads with ELX Studio injected
+              <IconInfo width={12} height={12} /> Capture starts when a page loads with ELX Forge injected
             </p>
           </div>
         ) : (

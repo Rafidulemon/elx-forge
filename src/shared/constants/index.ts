@@ -1,6 +1,6 @@
 import type { Settings } from '../types/settings';
 
-export const APP_NAME = 'ELX Studio';
+export const APP_NAME = 'ELX Forge';
 export const APP_VERSION = '0.1.0';
 export const INJECTED_VERSION = '0.1.0';
 

@@ -77,9 +77,7 @@ function PopupApp() {
   return (
     <div className="flex h-[520px] w-[400px] flex-col bg-panel text-ink">
       <header className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2.5">
-        <div className="flex h-6 w-6 items-center justify-center rounded bg-brand text-[12px] font-bold text-[#0b1220]">
-          E
-        </div>
+        <img src="/icons/logo.png" alt="ELX Forge" className="h-6 w-6 shrink-0 object-contain" />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="text-[13px] font-semibold">{APP_NAME}</p>
           <p className="truncate text-[11px] text-ink-dim">{host ?? 'No webpage detected'}</p>
@@ -100,7 +98,7 @@ function PopupApp() {
           <EmptyState
             icon={<IconFlask width={24} height={24} />}
             title="No webpage open"
-            description="ELX Studio injects into webpages. Open a site in the active tab to see matching experiments."
+            description="ELX Forge injects into webpages. Open a site in the active tab to see matching experiments."
           />
         ) : matches.length === 0 ? (
           <EmptyState
@@ -168,7 +166,7 @@ function PopupApp() {
       </div>
 
       <footer className="flex shrink-0 items-center justify-between border-t border-line px-3 py-2 text-[11px] text-ink-dim">
-        <span>ELX Studio v{APP_VERSION}</span>
+        <span>ELX Forge v{APP_VERSION}</span>
         <span>Auto-injection active on matching pages</span>
       </footer>
     </div>

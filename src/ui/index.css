@@ -3,28 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --color-panel: #0d1117;
-  --color-elev: #161b22;
-  --color-hover: #1f242c;
-  --color-line: #2a2f3a;
-  --color-ink: #e6edf3;
-  --color-ink-dim: #8b949e;
-  --color-brand: #58a6ff;
-  --color-brand-dim: #1f6feb;
+  --color-panel: #0a0a0a;
+  --color-elev: #141414;
+  --color-hover: #1c1c1c;
+  --color-line: #262626;
+  --color-ink: #fafafa;
+  --color-ink-dim: #9ca3af;
+  --color-brand: #f97316;
+  --color-brand-dim: #c2410c;
   --color-ok: #3fb950;
   --color-warn: #d29922;
   --color-err: #f85149;
 }
 
 html.light {
-  --color-panel: #f6f8fa;
+  --color-panel: #fafafa;
   --color-elev: #ffffff;
-  --color-hover: #eaeef2;
-  --color-line: #d0d7de;
-  --color-ink: #1f2328;
-  --color-ink-dim: #656d76;
-  --color-brand: #0969da;
-  --color-brand-dim: #0b63c9;
+  --color-hover: #f3f4f6;
+  --color-line: #d1d5db;
+  --color-ink: #171717;
+  --color-ink-dim: #6b7280;
+  --color-brand: #ea580c;
+  --color-brand-dim: #c2410c;
   --color-ok: #1a7f37;
   --color-warn: #9a6700;
   --color-err: #cf222e;
@@ -67,7 +67,7 @@ body {
     @apply inline-flex select-none items-center gap-1.5 rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-dim disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-brand text-[#0b1220] hover:bg-brand-dim;
+    @apply btn bg-brand text-black hover:bg-brand-dim;
   }
   .btn-subtle {
     @apply btn bg-hover text-ink hover:bg-line;
