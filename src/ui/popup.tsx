@@ -5,7 +5,7 @@ import type { Experiment } from '@shared/types/experiment';
 import type { Project } from '@shared/types/project';
 import { experimentService } from '@shared/storage/experimentService';
 import { projectService } from '@shared/storage/projectService';
-import { experimentMatchesUrl } from '@shared/utils/urlMatcher';
+import { domainMatches, experimentMatchesUrl } from '@shared/utils/urlMatcher';
 import { getActiveTab, isHttpUrl, openStudio, runExperimentInTab } from './lib/runtime';
 import { Button } from './components/ui/Button';
 import { Badge } from './components/ui/Badge';
@@ -15,11 +15,11 @@ import { IconFlask, IconPlay, IconZap } from './components/ui/icons';
 import { APP_NAME, APP_VERSION } from '@shared/constants';
 import { cn } from './lib/cn';
 
-type Match = { project: Project; experiment: Experiment };
+type Group = { project: Project; experiments: Experiment[] };
 
 function PopupApp() {
   const [tabUrl, setTabUrl] = useState<string | null>(null);
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [runningId, setRunningId] = useState<string | null>(null);
 
@@ -27,17 +27,23 @@ function PopupApp() {
     const tab = await getActiveTab();
     if (!tab?.url || !isHttpUrl(tab.url)) {
       setTabUrl(null);
-      setMatches([]);
+      setGroups([]);
       setLoading(false);
       return;
     }
     setTabUrl(tab.url);
     const [experiments, projects] = await Promise.all([experimentService.list(), projectService.list()]);
-    const projectById = new Map(projects.map((p) => [p.id, p]));
-    const matched = experiments
-      .filter((e) => e.enabled && projectById.get(e.projectId)?.active === true && experimentMatchesUrl(e, tab.url ?? ''))
-      .map((experiment) => ({ project: projectById.get(experiment.projectId) as Project, experiment }));
-    setMatches(matched);
+    const host = new URL(tab.url).host;
+    const groups: Group[] = projects
+      .filter((p) => domainMatches(p.domain, host))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((project) => ({
+        project,
+        experiments: experiments
+          .filter((e) => e.projectId === project.id)
+          .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt),
+      }));
+    setGroups(groups);
     setLoading(false);
   };
 
@@ -74,6 +80,25 @@ function PopupApp() {
     }
   }, [tabUrl]);
 
+  const experimentCount = useMemo(() => groups.reduce((sum, g) => sum + g.experiments.length, 0), [groups]);
+
+  const matched = useMemo(
+    () => (tabUrl ? groups.flatMap((g) => g.experiments).filter((e) => experimentMatchesUrl(e, tabUrl)) : []),
+    [groups, tabUrl],
+  );
+
+  const patchExperiment = (id: string, enabled: boolean): void => {
+    void experimentService.patch(id, { enabled });
+    setGroups((prev) =>
+      prev.map((group) => ({
+        ...group,
+        experiments: group.experiments
+          .map((e) => (e.id === id ? { ...e, enabled } : e))
+          .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt),
+      })),
+    );
+  };
+
   return (
     <div className="flex h-[520px] w-[400px] flex-col bg-panel text-ink">
       <header className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2.5">
@@ -98,67 +123,117 @@ function PopupApp() {
           <EmptyState
             icon={<IconFlask width={24} height={24} />}
             title="No webpage open"
-            description="ELX Forge injects into webpages. Open a site in the active tab to see matching experiments."
+            description="ELX Forge injects into webpages. Open a site in the active tab to see matching projects."
           />
-        ) : matches.length === 0 ? (
+        ) : groups.length === 0 ? (
           <EmptyState
             icon={<IconFlask width={24} height={24} />}
-            title="No experiments for this page"
-            description="Create experiments with URL rules that match this page to see them here."
+            title="No project for this site"
+            description="Open Studio and create a project targeting this domain to manage its experiments here."
+            action={
+              <Button variant="primary" size="sm" onClick={openStudio}>
+                Open Studio
+              </Button>
+            }
           />
         ) : (
           <>
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-dim">
-                {matches.length} matching experiment{matches.length > 1 ? 's' : ''}
+                {groups.length} project{groups.length > 1 ? 's' : ''} · {experimentCount}{' '}
+                experiment{experimentCount === 1 ? '' : 's'}
               </p>
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={() => {
-                  matches.forEach(({ experiment }) => void run(experiment));
-                }}
-              >
-                <IconZap width={13} height={13} />
-                Run all
-              </Button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {matches.map(({ project, experiment }) => (
-                <div
-                  key={experiment.id}
-                  className="panel flex items-center gap-2 p-2.5"
+              {matched.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => {
+                    matched.forEach((experiment) => void run(experiment));
+                  }}
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12px] font-medium">{experiment.name}</p>
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                      <Badge tone="brand" className="!px-1 !text-[10px]">
-                        {project.name}
-                      </Badge>
-                      <Badge tone="neutral" className="!px-1 !text-[10px]">
-                        v{experiment.version}
-                      </Badge>
+                  <IconZap width={13} height={13} />
+                  Run {matched.length}
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-col gap-3">
+              {groups.map(({ project, experiments }) => (
+                <section key={project.id} className="panel overflow-hidden">
+                  <div className="flex items-center gap-2 border-b border-line bg-elev/60 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] font-semibold">{project.name}</p>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        {project.domain && (
+                          <Badge tone="brand" className="!px-1 !text-[10px]">
+                            {project.domain}
+                          </Badge>
+                        )}
+                        <Badge tone={project.active ? 'ok' : 'neutral'} className="!px-1 !text-[10px]">
+                          {project.active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
                     </div>
+                    <Toggle
+                      checked={project.active}
+                      label={`${project.name} active`}
+                      onChange={(v) => void projectService.patch(project.id, { active: v })}
+                    />
                   </div>
-                  <Toggle
-                    checked={experiment.enabled}
-                    onChange={(v) => void experimentService.patch(experiment.id, { enabled: v })}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void run(experiment)}
-                    disabled={runningId === experiment.id}
-                    className={cn(
-                      'rounded p-1.5 transition-colors',
-                      runningId === experiment.id
-                        ? 'text-ink-dim'
-                        : 'text-brand hover:bg-brand/15',
-                    )}
-                    title="Run on this page"
-                  >
-                    <IconPlay width={15} height={15} />
-                  </button>
-                </div>
+
+                  {experiments.length === 0 ? (
+                    <p className="px-3 py-3 text-center text-[11px] text-ink-dim">
+                      No experiments yet — create them in Studio.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col">
+                      {experiments.map((experiment) => {
+                        const matches = tabUrl ? experimentMatchesUrl(experiment, tabUrl) : false;
+                        return (
+                          <div
+                            key={experiment.id}
+                            className="flex items-center gap-2 border-b border-line px-3 py-2 last:border-b-0"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[12px] font-medium">{experiment.name}</p>
+                              <div className="mt-0.5 flex items-center gap-1.5">
+                                <Badge tone={experiment.enabled ? 'ok' : 'neutral'} className="!px-1 !text-[10px]">
+                                  {experiment.enabled ? 'Active' : 'Inactive'}
+                                </Badge>
+                                <Badge tone="neutral" className="!px-1 !text-[10px]">
+                                  v{experiment.version}
+                                </Badge>
+                                {matches && (
+                                  <Badge tone="brand" className="!px-1 !text-[10px]">
+                                    matches
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <Toggle
+                              checked={experiment.enabled}
+                              label={`${experiment.name} active`}
+                              onChange={(v) => patchExperiment(experiment.id, v)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void run(experiment)}
+                              disabled={runningId === experiment.id}
+                              className={cn(
+                                'rounded p-1.5 transition-colors',
+                                runningId === experiment.id
+                                  ? 'text-ink-dim'
+                                  : 'text-brand hover:bg-brand/15',
+                              )}
+                              title="Run on this page"
+                            >
+                              <IconPlay width={15} height={15} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
               ))}
             </div>
           </>

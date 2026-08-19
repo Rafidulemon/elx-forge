@@ -15,6 +15,28 @@ export function normalizeUrl(url: string): string {
   return url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
 }
 
+/**
+ * Normalizes a project domain or host for comparison: strips protocol, `www.`,
+ * path and port, then lowercases (e.g. `https://WWW.Nike.com/shop` → `nike.com`).
+ */
+export function normalizeDomain(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//i, '')
+    .replace(/^www\./, '')
+    .replace(/:\d+$/, '')
+    .replace(/\/.*$/, '');
+}
+
+/** True when the given host belongs to the project's domain (exact match or subdomain). */
+export function domainMatches(projectDomain: string, host: string): boolean {
+  const domain = normalizeDomain(projectDomain);
+  const target = normalizeDomain(host);
+  if (!domain || !target) return false;
+  return target === domain || target.endsWith(`.${domain}`);
+}
+
 export function matchesUrl(url: string, rule: Pick<UrlRule, 'type' | 'pattern'>): boolean {
   const pattern = rule.pattern.trim();
   if (!pattern) return false;
