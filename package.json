@@ -1,0 +1,43 @@
+{
+  "name": "elx-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ELX Studio — Chrome extension for CRO engineers to inject custom JS & CSS into websites for A/B testing, debugging and prototyping.",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build",
+    "build": "npm run build:ui && npm run build:scripts",
+    "build:ui": "vite build --config vite.config.ui.ts",
+    "build:scripts": "node scripts/build-scripts.mjs",
+    "watch:ui": "vite build --config vite.config.ui.ts --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"index.html\" \"popup.html\"",
+    "icons": "node scripts/gen-icons.mjs"
+  },
+  "dependencies": {
+    "monaco-editor": "^0.52.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.280",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.0",
+    "postcss": "^8.4.0",
+    "prettier": "^3.3.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}

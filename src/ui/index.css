@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-panel: #0d1117;
+  --color-elev: #161b22;
+  --color-hover: #1f242c;
+  --color-line: #2a2f3a;
+  --color-ink: #e6edf3;
+  --color-ink-dim: #8b949e;
+  --color-brand: #58a6ff;
+  --color-brand-dim: #1f6feb;
+  --color-ok: #3fb950;
+  --color-warn: #d29922;
+  --color-err: #f85149;
+}
+
+html.light {
+  --color-panel: #f6f8fa;
+  --color-elev: #ffffff;
+  --color-hover: #eaeef2;
+  --color-line: #d0d7de;
+  --color-ink: #1f2328;
+  --color-ink-dim: #656d76;
+  --color-brand: #0969da;
+  --color-brand-dim: #0b63c9;
+  --color-ok: #1a7f37;
+  --color-warn: #9a6700;
+  --color-err: #cf222e;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-panel);
+}
+html.light {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-panel text-ink font-sans text-[13px] antialiased;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-dim);
+  background-clip: content-box;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex select-none items-center gap-1.5 rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-dim disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-[#0b1220] hover:bg-brand-dim;
+  }
+  .btn-subtle {
+    @apply btn bg-hover text-ink hover:bg-line;
+  }
+  .btn-ghost {
+    @apply btn text-ink-dim hover:bg-hover hover:text-ink;
+  }
+  .btn-danger {
+    @apply btn text-err;
+    background-color: color-mix(in srgb, var(--color-err) 14%, transparent);
+  }
+  .btn-danger:hover {
+    background-color: color-mix(in srgb, var(--color-err) 24%, transparent);
+  }
+  .input {
+    @apply w-full rounded border border-line bg-elev px-2.5 py-1.5 text-[13px] text-ink focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand-dim;
+  }
+  .input::placeholder {
+    color: color-mix(in srgb, var(--color-ink-dim) 60%, transparent);
+  }
+  .label {
+    @apply mb-1 block text-[11px] font-medium uppercase tracking-wide text-ink-dim;
+  }
+  .panel {
+    @apply rounded-lg border border-line bg-elev;
+  }
+}

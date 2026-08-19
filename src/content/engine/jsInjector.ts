@@ -1,0 +1,92 @@
+import type { Experiment } from '@shared/types/experiment';
+import { createId } from '@shared/utils/id';
+import { emitInjectionEvent } from '../console/consolePort';
+import { getTracked, setTracked } from './injectionTracker';
+import { subscribeExecuted, waitForBridge } from '../bridge/bridgeController';
+
+function event(
+  type: 'js:inject' | 'js:rerun' | 'js:skip' | 'js:error' | 'system',
+  experiment: Experiment,
+  message: string,
+): void {
+  emitInjectionEvent({
+    id: createId(),
+    type,
+    experimentId: experiment.id,
+    experimentName: experiment.name,
+    message,
+    timestamp: Date.now(),
+  });
+}
+
+/**
+ * Executes the experiment's JS in the page's MAIN world by appending a
+ * `<script>` element. Dedup is version-based: the same version only runs
+ * once per page load unless `force` is set (explicit "Run" / rerun).
+ */
+export async function executeJs(experiment: Experiment, force = false): Promise<void> {
+  const tracked = getTracked(experiment.id);
+  const needsRun = force || !tracked || tracked.lastVersion !== experiment.version;
+
+  if (!needsRun) {
+    event('js:skip', experiment, `Already active (v${experiment.version})`);
+    return;
+  }
+
+  if (!experiment.js.trim()) {
+    setTracked(experiment.id, {
+      lastVersion: experiment.version,
+      cssHash: tracked?.cssHash ?? null,
+      lastRunAt: Date.now(),
+    });
+    event('system', experiment, 'No JS to run (empty script)');
+    return;
+  }
+
+  const ready = await waitForBridge();
+  if (!ready) {
+    event(
+      'js:error',
+      experiment,
+      'Bridge not ready — the page CSP may be blocking ELX Studio. Check the built-in console.',
+    );
+  }
+
+  const runId = createId();
+
+  // Execute the user code in the page's MAIN world through the background,
+  // which uses chrome.scripting.executeScript. This bypasses page CSP, which
+  // would otherwise block an inline <script> element.
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'ELX_EXECUTE_MAIN',
+      code: `${experiment.js}\n`,
+      runId,
+    });
+    if (!response?.ok) {
+      throw new Error(response?.error ?? 'Main-world execution failed');
+    }
+  } catch (err) {
+    event('js:error', experiment, err instanceof Error ? err.message : String(err));
+    return;
+  }
+
+  setTracked(experiment.id, {
+    lastVersion: experiment.version,
+    cssHash: tracked?.cssHash ?? null,
+    lastRunAt: Date.now(),
+  });
+
+  event(force ? 'js:rerun' : 'js:inject', experiment, `JS executed (v${experiment.version})`);
+}
+
+export function initJsCompletionLogging(): void {
+  subscribeExecuted((runId) => {
+    emitInjectionEvent({
+      id: createId(),
+      type: 'system',
+      message: `JS run ${runId.slice(0, 8)} completed`,
+      timestamp: Date.now(),
+    });
+  });
+}

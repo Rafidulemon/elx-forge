@@ -1,0 +1,425 @@
+# Project Overview
+
+You are a senior Chrome Extension architect and TypeScript engineer.
+
+Build a production-quality Chrome Extension (Manifest V3) named **ELX Studio**.
+
+The goal is to create a developer tool for CRO engineers that injects custom JavaScript and CSS into websites for A/B testing, debugging, prototyping, and UI customization.
+
+This should be architected like a real software product, not a demo.
+
+---
+
+# Tech Stack
+
+Use:
+
+* React 19
+* TypeScript
+* Vite
+* Manifest V3
+* Chrome Storage API
+* Monaco Editor
+* Zustand
+* React Router
+* Tailwind CSS
+* ESLint
+* Prettier
+
+Folder structure must be clean and scalable.
+
+---
+
+# Main Features
+
+## 1. Dashboard
+
+Show all projects.
+
+Each project contains:
+
+* Name
+* Description
+* Domain
+* Created date
+* Updated date
+* Active/Inactive
+
+Allow:
+
+* Create Project
+* Delete Project
+* Duplicate Project
+* Search
+* Sort
+* Filter
+
+---
+
+## 2. Experiments
+
+Each project can have multiple experiments.
+
+Example:
+
+Nike
+
+* PDP Redesign
+* PLP Improvements
+* Sticky Cart
+
+Each experiment contains:
+
+* Name
+* Description
+* URL matching rules
+* User JS
+* User CSS
+* Enabled
+* Notes
+* Version
+
+---
+
+## 3. URL Matching
+
+Support
+
+Exact
+
+Contains
+
+Starts With
+
+Ends With
+
+Regex
+
+Wildcard
+
+Examples
+
+https://nike.com/*
+
+*/products/*
+
+Regex
+
+Contains
+
+Support multiple rules.
+
+---
+
+## 4. JavaScript Editor
+
+Use Monaco Editor.
+
+Features
+
+* Syntax highlighting
+* Auto complete
+* Dark theme
+* Light theme
+* Format code
+* Find
+* Replace
+* Line numbers
+* Folding
+* Minimap option
+
+---
+
+## 5. CSS Editor
+
+Same as JS editor.
+
+Support formatting.
+
+---
+
+## 6. Live Injection
+
+When user clicks
+
+Run
+
+Immediately inject JS and CSS into current tab.
+
+No page refresh.
+
+---
+
+## 7. Auto Injection
+
+Whenever matching page loads
+
+Automatically inject CSS
+
+Automatically execute JS
+
+Works on SPA websites.
+
+Observe History API changes.
+
+Observe pushState
+
+replaceState
+
+popstate
+
+---
+
+## 8. CSS Injection
+
+Prevent duplicate style tags.
+
+Replace existing style if modified.
+
+---
+
+## 9. JS Execution
+
+Prevent duplicate execution.
+
+Allow rerun.
+
+Support async scripts.
+
+---
+
+## 10. Console
+
+Built-in console.
+
+Capture
+
+console.log
+
+console.warn
+
+console.error
+
+Show timestamps.
+
+Allow clear.
+
+---
+
+## 11. Storage
+
+Persist everything using chrome.storage.local.
+
+Create reusable storage service.
+
+---
+
+## 12. Import / Export
+
+Export
+
+Entire project
+
+Single experiment
+
+JSON format.
+
+Import JSON.
+
+Validate schema.
+
+---
+
+## 13. Settings
+
+Dark Mode
+
+Light Mode
+
+Editor Font Size
+
+Tab Size
+
+Word Wrap
+
+Auto Save
+
+Theme
+
+---
+
+## 14. Utilities
+
+Include helper library.
+
+waitForElem()
+
+observeElement()
+
+observeChildren()
+
+observeUrlChange()
+
+debounce()
+
+throttle()
+
+sleep()
+
+injectCSS()
+
+removeCSS()
+
+createLogger()
+
+---
+
+## 15. Element Picker
+
+Future-ready architecture.
+
+Create module for selecting element.
+
+When user clicks picker
+
+Hover highlights DOM
+
+Click returns
+
+CSS selector
+
+XPath
+
+Attributes
+
+Text
+
+Bounding box
+
+---
+
+## 16. Notifications
+
+Toast notifications.
+
+Success
+
+Error
+
+Warning
+
+Info
+
+---
+
+## 17. Keyboard Shortcuts
+
+Ctrl + S
+
+Save
+
+Ctrl + Enter
+
+Run
+
+Ctrl + Shift + F
+
+Format
+
+---
+
+# Extension Architecture
+
+Use
+
+Popup
+
+Background Service Worker
+
+Content Script
+
+Injected Script
+
+Shared utilities
+
+Services
+
+Hooks
+
+Contexts
+
+Store
+
+Types
+
+Separate responsibilities.
+
+---
+
+# UI
+
+Modern UI.
+
+Inspired by VS Code.
+
+Sidebar
+
+Resizable panels
+
+Tabs
+
+Icons
+
+Smooth animations
+
+Responsive
+
+Professional design.
+
+---
+
+# Performance
+
+Avoid memory leaks.
+
+Avoid duplicate observers.
+
+Optimize injection.
+
+Lazy load Monaco.
+
+---
+
+# Code Quality
+
+Use SOLID principles.
+
+Reusable components.
+
+Strong TypeScript typing.
+
+No any types.
+
+Document important functions.
+
+No duplicated code.
+
+---
+
+# Deliverables
+
+Generate:
+
+* Complete folder structure
+* All source code
+* Manifest
+* React app
+* Storage layer
+* Injection engine
+* URL matcher
+* Monaco integration
+* Utilities
+* Reusable hooks
+* Build configuration
+
+Build the project incrementally, feature by feature. Before implementing each feature, explain the architecture and why it is designed that way. Favor maintainability, scalability, and clean abstractions over shortcuts.
