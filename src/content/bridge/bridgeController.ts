@@ -1,10 +1,9 @@
-import { BRIDGE_SOURCE, ELX_ATTR } from '@shared/constants';
+import { BRIDGE_SOURCE } from '@shared/constants';
 import type { BridgeEnvelope } from '@shared/types/bridge';
 import { createId } from '@shared/utils/id';
 import { emitConsole, emitInjectionEvent } from '../console/consolePort';
 
 let bridgeReady = false;
-let bridgeLoading = false;
 let readyResolve: ((ready: boolean) => void) | null = null;
 
 const executedHandlers = new Set<(runId: string) => void>();
@@ -24,15 +23,13 @@ function resolveReady(value: boolean): void {
   }
 }
 
-/** Injects the MAIN-world bridge script into the page (idempotent). */
-export function injectBridge(): void {
-  if (bridgeLoading) return;
-  bridgeLoading = true;
-  const script = document.createElement('script');
-  script.src = chrome.runtime.getURL('injected.js');
-  script.async = false;
-  script.setAttribute(ELX_ATTR, 'bridge');
-  (document.head || document.documentElement).appendChild(script);
+/**
+ * Ensures the MAIN/USER world bridge is present. The background picks the
+ * best mechanism: a registered USER_SCRIPT (CSP-exempt) when available,
+ * otherwise scripting.executeScript in the MAIN world.
+ */
+export function ensureBridge(): void {
+  void chrome.runtime.sendMessage({ type: 'ELX_INJECT_BRIDGE' }).catch(() => undefined);
 }
 
 export function isBridgeReady(): boolean {

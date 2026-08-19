@@ -26,7 +26,7 @@ JS & CSS into any website for A/B testing, debugging and prototyping.
 | Extension | Chrome Manifest V3, Service Worker |
 | Storage | `chrome.storage.local` (generic typed storage service) |
 | Messaging | `runtime.sendMessage` RPCs, long-lived ports (console relay), `window.postMessage` bridge |
-| Injection | `chrome.scripting.executeScript` (MAIN world) + `<style>` injection |
+| Injection | `chrome.userScripts` (CSP-exempt USER_SCRIPT world) with `scripting.executeScript` fallback + `<style>` injection |
 | Linting / Format | ESLint, Prettier |
 | Icons | Generated PNGs (16/32/48/128) |
 
@@ -52,7 +52,7 @@ JS & CSS into any website for A/B testing, debugging and prototyping.
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Google Chrome (version 110+)
+- Google Chrome 135+ (required for full CSP support via the `chrome.userScripts` API)
 
 ### Install & Build
 
@@ -95,6 +95,15 @@ npm run watch:ui     # rebuild UI on changes
 
 ### Notes
 
-- User JS is executed in the page's **MAIN world** via `chrome.scripting.executeScript`, so it works even on pages with a strict Content Security Policy.
+- User JS runs in a **USER_SCRIPT world** (via `chrome.userScripts`) that is exempt from the page's CSP — so it works even on strict-CSP sites that block `unsafe-eval` and TrustedTypes. Older Chrome versions fall back to `chrome.scripting.executeScript` (MAIN world), which works unless the page blocks `unsafe-eval`.
 - The bridge exposes `window.ELX` helpers to user scripts (see `src/shared/helpers`).
 - Console streaming only works on `http(s)` pages where the extension's content script runs.
+
+### Enabling the user scripts API (Chrome 135+)
+
+The `chrome.userScripts` API powers injection on strict-CSP sites and requires a one-time toggle:
+
+1. Open `chrome://extensions` and click **Details** on the ELX Studio card.
+2. Toggle on **Allow User Scripts**.
+   - On Chrome older than 138, the extension instead requires **Developer mode** to be enabled (top-right of `chrome://extensions`).
+3. Reload the extension if the toggle was turned on while the service worker was already running.

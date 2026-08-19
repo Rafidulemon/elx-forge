@@ -16,6 +16,7 @@ export type RuntimeMessage =
   | { type: 'ELX_OPEN_STUDIO' }
   | { type: 'ELX_RUN_EXPERIMENT'; experiment: Experiment; force?: boolean }
   | { type: 'ELX_EXECUTE_MAIN'; code: string; runId: string }
+  | { type: 'ELX_INJECT_BRIDGE' }
   | { type: 'ELX_PICK_ELEMENT' }
   | { type: 'ELX_CANCEL_PICK' }
   | { type: 'ELX_ELEMENT_PICKED'; pick: ElementPickResult | null };

@@ -1,11 +1,11 @@
-import { initBridge, injectBridge } from './bridge/bridgeController';
+import { ensureBridge, initBridge } from './bridge/bridgeController';
 import { initConsolePort } from './console/consolePort';
 import { initJsCompletionLogging } from './engine/jsInjector';
 import { initUrlWatcher } from './engine/urlWatcher';
 import { initMessageHandlers } from './messaging/handlers';
 
 initBridge();
-injectBridge();
+ensureBridge();
 initConsolePort();
 initJsCompletionLogging();
 initUrlWatcher();
