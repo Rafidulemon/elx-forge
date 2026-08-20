@@ -6,12 +6,12 @@ import type { Project } from '@shared/types/project';
 import { experimentService } from '@shared/storage/experimentService';
 import { projectService } from '@shared/storage/projectService';
 import { domainMatches, experimentMatchesUrl } from '@shared/utils/urlMatcher';
-import { getActiveTab, isHttpUrl, openStudio, runExperimentInTab } from './lib/runtime';
+import { getActiveTab, isHttpUrl, openStudio, refreshProjectTab, removeExperimentFromProject, runExperimentOnProject } from './lib/runtime';
 import { Button } from './components/ui/Button';
 import { Badge } from './components/ui/Badge';
 import { EmptyState } from './components/ui/EmptyState';
 import { Toggle } from './components/ui/Toggle';
-import { IconFlask, IconPlay, IconZap } from './components/ui/icons';
+import { IconFlask, IconPlay, IconRefresh, IconZap } from './components/ui/icons';
 import { APP_NAME, APP_VERSION } from '@shared/constants';
 import { cn } from './lib/cn';
 
@@ -58,12 +58,24 @@ function PopupApp() {
     });
   }, []);
 
-  const run = async (experiment: Experiment): Promise<void> => {
-    const tab = await getActiveTab();
-    if (!tab?.id) return;
+  const run = async (project: Project, experiment: Experiment): Promise<void> => {
     setRunningId(experiment.id);
+    if (!experiment.enabled) {
+      setGroups((prev) =>
+        prev.map((group) =>
+          group.project.id === project.id
+            ? {
+                ...group,
+                experiments: group.experiments
+                  .map((e) => (e.id === experiment.id ? { ...e, enabled: true } : e))
+                  .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt),
+              }
+            : group,
+        ),
+      );
+    }
     try {
-      await runExperimentInTab(tab.id, experiment, true);
+      await runExperimentOnProject(project, experiment);
     } catch {
       // noop — content script unreachable
     } finally {
@@ -83,19 +95,43 @@ function PopupApp() {
   const experimentCount = useMemo(() => groups.reduce((sum, g) => sum + g.experiments.length, 0), [groups]);
 
   const matched = useMemo(
-    () => (tabUrl ? groups.flatMap((g) => g.experiments).filter((e) => experimentMatchesUrl(e, tabUrl)) : []),
+    () =>
+      tabUrl
+        ? groups.flatMap((g) =>
+            g.experiments.filter((e) => experimentMatchesUrl(e, tabUrl)).map((experiment) => ({ project: g.project, experiment })),
+          )
+        : [],
     [groups, tabUrl],
   );
 
-  const patchExperiment = (id: string, enabled: boolean): void => {
-    void experimentService.patch(id, { enabled });
+  const patchExperiment = (project: Project, experiment: Experiment, enabled: boolean): void => {
+    void experimentService.patch(experiment.id, { enabled });
     setGroups((prev) =>
       prev.map((group) => ({
         ...group,
         experiments: group.experiments
-          .map((e) => (e.id === id ? { ...e, enabled } : e))
+          .map((e) => (e.id === experiment.id ? { ...e, enabled } : e))
           .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt),
       })),
+    );
+    if (enabled) {
+      void runExperimentOnProject(project, { ...experiment, enabled });
+    } else {
+      void removeExperimentFromProject(project, experiment.id);
+    }
+  };
+
+  const patchProject = (project: Project, active: boolean): void => {
+    void projectService.setActive(project.id, active);
+    setGroups((prev) =>
+      prev.map((group) =>
+        group.project.id === project.id
+          ? {
+              project: { ...group.project, active },
+              experiments: active ? group.experiments : group.experiments.map((e) => ({ ...e, enabled: false })),
+            }
+          : group,
+      ),
     );
   };
 
@@ -148,7 +184,7 @@ function PopupApp() {
                   size="sm"
                   variant="primary"
                   onClick={() => {
-                    matched.forEach((experiment) => void run(experiment));
+                    matched.forEach(({ project, experiment }) => void run(project, experiment));
                   }}
                 >
                   <IconZap width={13} height={13} />
@@ -176,7 +212,7 @@ function PopupApp() {
                     <Toggle
                       checked={project.active}
                       label={`${project.name} active`}
-                      onChange={(v) => void projectService.patch(project.id, { active: v })}
+                      onChange={(v) => patchProject(project, v)}
                     />
                   </div>
 
@@ -209,25 +245,39 @@ function PopupApp() {
                                 )}
                               </div>
                             </div>
-                            <Toggle
-                              checked={experiment.enabled}
-                              label={`${experiment.name} active`}
-                              onChange={(v) => patchExperiment(experiment.id, v)}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => void run(experiment)}
-                              disabled={runningId === experiment.id}
-                              className={cn(
-                                'rounded p-1.5 transition-colors',
-                                runningId === experiment.id
-                                  ? 'text-ink-dim'
-                                  : 'text-brand hover:bg-brand/15',
-                              )}
-                              title="Run on this page"
-                            >
-                              <IconPlay width={15} height={15} />
-                            </button>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <Toggle
+                                checked={experiment.enabled}
+                                label={`${experiment.name} active`}
+                                onChange={(v) => patchExperiment(project, experiment, v)}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void run(project, experiment)}
+                                disabled={runningId === experiment.id}
+                                className={cn(
+                                  'rounded p-1.5 transition-colors',
+                                  runningId === experiment.id
+                                    ? 'text-ink-dim'
+                                    : 'text-brand hover:bg-brand/15',
+                                )}
+                                title="Run on the project's page"
+                              >
+                                <IconPlay width={15} height={15} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void refreshProjectTab(project).then((ok) => {
+                                    if (!ok) void run(project, experiment);
+                                  });
+                                }}
+                                className="rounded p-1.5 text-ink-dim transition-colors hover:bg-hover hover:text-ink"
+                                title="Reload the project's page"
+                              >
+                                <IconRefresh width={15} height={15} />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -242,7 +292,14 @@ function PopupApp() {
 
       <footer className="flex shrink-0 items-center justify-between border-t border-line px-3 py-2 text-[11px] text-ink-dim">
         <span>ELX Forge v{APP_VERSION}</span>
-        <span>Auto-injection active on matching pages</span>
+        <a
+          href="https://www.echologyx.com"
+          target="_blank"
+          rel="noreferrer"
+          className="text-brand transition-colors hover:text-brand-dim"
+        >
+          A tool by Echologyx
+        </a>
       </footer>
     </div>
   );

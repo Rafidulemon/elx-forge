@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { ElementPickResult, Experiment } from '@shared/types';
 import { experimentService } from '@shared/storage/experimentService';
 import { exportExperiment } from '@shared/storage/importExport';
-import { downloadText } from '../lib/download';
+import { copyText, downloadText } from '../lib/download';
 import { formatActiveEditor } from '../lib/editorRegistry';
-import { getBestTargetTab, isHttpUrl, pickElementInTab, runExperimentInTab } from '../lib/runtime';
+import { pickElementOnProject, projectUrl, runExperimentOnProject } from '../lib/runtime';
 import { toast } from '../store/toastStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useProjectsStore } from '../store/projectsStore';
@@ -76,8 +77,30 @@ export function ExperimentEditorPage() {
     };
   }, [experimentId]);
 
+  // Keep the enabled/version state in sync with other contexts (e.g. toggling
+  // from the extension popup) without clobbering in-progress code edits.
+  useEffect(() => {
+    const onChange = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      area: string,
+    ): void => {
+      if (area !== 'local' || !changes['elx.experiments']) return;
+      void experimentService.get(experimentId).then((next) => {
+        if (!next) return;
+        setDraft((d) => (d ? { ...d, enabled: next.enabled, version: next.version } : d));
+      });
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    return () => chrome.storage.onChanged.removeListener(onChange);
+  }, [experimentId]);
+
   const patch = (partial: Partial<Experiment>): void => {
     setDraft((d) => (d ? { ...d, ...partial, updatedAt: now() } : d));
+  };
+
+  const toggleEnabled = (enabled: boolean): void => {
+    patch({ enabled });
+    if (draft) void experimentService.patch(draft.id, { enabled });
   };
 
   const save = async (silent = false): Promise<void> => {
@@ -110,29 +133,20 @@ export function ExperimentEditorPage() {
   }, [draft?.js, draft?.css]);
 
   const run = async (): Promise<void> => {
-    if (!draft) return;
-    const tab = await getBestTargetTab();
-    if (!tab?.id || !tab.url || !isHttpUrl(tab.url)) {
-      toast.warning('Open a webpage in a Chrome tab, then click Run again');
-      return;
-    }
+    if (!draft || !project) return;
     try {
-      await runExperimentInTab(tab.id, draft, true);
-      toast.success(`"${draft.name}" injected on ${tab.url}`);
+      const url = await runExperimentOnProject(project, draft);
+      toast.success(`"${draft.name}" injected on ${url}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Cannot reach the page');
     }
   };
 
   const pick = async (): Promise<void> => {
-    const tab = await getBestTargetTab();
-    if (!tab?.id || !tab.url || !isHttpUrl(tab.url)) {
-      toast.warning('Open a webpage in a Chrome tab, then click Pick again');
-      return;
-    }
+    if (!project) return;
     setPicking(true);
     try {
-      const result = await pickElementInTab(tab.id);
+      const result = await pickElementOnProject(project);
       setPickResult(result);
       setPickOpen(true);
     } catch (err) {
@@ -168,7 +182,20 @@ export function ExperimentEditorPage() {
     );
   }
 
-  const testUrl = activeTab ? activeTab.url : null;
+  const testUrl = project ? projectUrl(project) ?? activeTab?.url ?? null : activeTab?.url ?? null;
+
+  const styleMode = draft.styleMode ?? 'css';
+  const jsContent = draft.js;
+  const styleContent = styleMode === 'scss' ? draft.scss ?? '' : draft.css;
+
+  const copyJs = (): void => {
+    void copyText(jsContent).then(() => toast.success('Copied index.js'));
+  };
+  const copyStyle = (): void => {
+    void copyText(styleContent).then(() =>
+      toast.success(`Copied ${styleMode === 'scss' ? 'style.scss' : 'style.css'}`),
+    );
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -191,7 +218,7 @@ export function ExperimentEditorPage() {
             <Badge tone={draft.enabled ? 'ok' : 'neutral'}>
               {draft.enabled ? 'Enabled' : 'Disabled'}
             </Badge>
-            <Toggle checked={draft.enabled} onChange={(v) => patch({ enabled: v })} />
+            <Toggle checked={draft.enabled} onChange={toggleEnabled} />
           </div>
           {project && (
             <p className="truncate text-[11px] text-ink-dim">
@@ -220,7 +247,7 @@ export function ExperimentEditorPage() {
             variant="primary"
             size="sm"
             onClick={() => void run()}
-            title="Inject into the current tab (Ctrl+Enter)"
+            title="Inject into the project's URL (Ctrl+Enter)"
           >
             <IconPlay width={14} height={14} />
             Run
@@ -234,7 +261,7 @@ export function ExperimentEditorPage() {
             size="sm"
             onClick={() => void pick()}
             disabled={picking}
-            title="Pick an element from the current page"
+            title="Pick an element from the project's URL"
           >
             {picking ? <Spinner className="!h-3.5 !w-3.5" /> : <IconMousePointer width={14} height={14} />}
             Pick
@@ -303,25 +330,46 @@ export function ExperimentEditorPage() {
         {tab === 'code' && (
           <SplitPane direction="horizontal" initial={0.55} className="h-full">
             <div className="flex h-full flex-col">
-              <EditorToolbar label="user.js" lang="JavaScript" />
+              <EditorToolbar label="index.js" lang="JavaScript" value={jsContent} onCopy={copyJs} />
               <div className="min-h-0 flex-1">
                 <MonacoEditor
                   id={`js-${experimentId}`}
                   language="javascript"
-                  value={draft.js}
+                  value={jsContent}
                   onChange={(v) => patch({ js: v })}
                   onRunShortcut={() => void run()}
                 />
               </div>
             </div>
             <div className="flex h-full flex-col">
-              <EditorToolbar label="user.css" lang="CSS" />
+              <EditorToolbar
+                label={styleMode === 'scss' ? 'style.scss' : 'style.css'}
+                lang={styleMode === 'scss' ? 'SCSS' : 'CSS'}
+                value={styleContent}
+                onCopy={copyStyle}
+              >
+                <div className="flex rounded border border-line bg-panel p-0.5">
+                  {(['css', 'scss'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => patch({ styleMode: mode })}
+                      className={cn(
+                        'rounded px-2 py-0.5 text-[11px] uppercase transition-colors',
+                        styleMode === mode ? 'bg-hover text-ink' : 'text-ink-dim hover:text-ink',
+                      )}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </EditorToolbar>
               <div className="min-h-0 flex-1">
                 <MonacoEditor
                   id={`css-${experimentId}`}
-                  language="css"
-                  value={draft.css}
-                  onChange={(v) => patch({ css: v })}
+                  language={styleMode === 'scss' ? 'scss' : 'css'}
+                  value={styleContent}
+                  onChange={(v) => patch(styleMode === 'scss' ? { scss: v } : { css: v })}
                   onRunShortcut={() => void run()}
                 />
               </div>
@@ -350,12 +398,36 @@ export function ExperimentEditorPage() {
   );
 }
 
-function EditorToolbar({ label, lang }: { label: string; lang: string }) {
+function EditorToolbar({
+  label,
+  lang,
+  value,
+  onCopy,
+  children,
+}: {
+  label: string;
+  lang: string;
+  value: string;
+  onCopy?: () => void;
+  children?: ReactNode;
+}) {
   return (
     <div className="flex h-8 shrink-0 items-center gap-2 border-b border-line bg-elev px-3">
       <span className="text-[11px] font-semibold text-ink">{label}</span>
       <Badge tone="brand">{lang}</Badge>
+      {children}
       <div className="flex-1" />
+      {onCopy && (
+        <button
+          type="button"
+          className="rounded p-1 text-ink-dim transition-colors hover:bg-hover hover:text-ink"
+          title={`Copy ${label} to clipboard`}
+          onClick={onCopy}
+          disabled={!value.trim()}
+        >
+          <IconCopy width={13} height={13} />
+        </button>
+      )}
       <button
         type="button"
         className="rounded p-1 text-ink-dim transition-colors hover:bg-hover hover:text-ink"

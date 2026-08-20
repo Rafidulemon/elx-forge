@@ -1,3 +1,5 @@
+import { registerSnippets } from '../editor/registerSnippets';
+
 let monacoPromise: Promise<typeof import('monaco-editor')> | null = null;
 
 type MonacoEnv = {
@@ -43,6 +45,7 @@ export function loadMonaco(): Promise<typeof import('monaco-editor')> {
     monacoPromise = import('monaco-editor').then((instance) => {
       const globalScope = self as unknown as { MonacoEnvironment?: MonacoEnv };
       globalScope.MonacoEnvironment = createWorkerEnv();
+      registerSnippets(instance);
       return instance;
     });
   }

@@ -24,6 +24,8 @@ export interface Experiment {
   urlRules: UrlRule[];
   js: string;
   css: string;
+  scss?: string;
+  styleMode?: 'css' | 'scss';
   enabled: boolean;
   version: number;
   createdAt: number;

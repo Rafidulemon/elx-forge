@@ -2,12 +2,17 @@ import type { Experiment } from '@shared/types/experiment';
 import { contentHash } from '@shared/utils/hash';
 import { createId } from '@shared/utils/id';
 import { emitInjectionEvent } from '../console/consolePort';
-import { getTracked, setTracked } from './injectionTracker';
+import { getTracked, resetTracked, setTracked } from './injectionTracker';
 
 const CSS_ATTR = 'data-elx-css';
 
 function cssSelectorFor(experimentId: string): string {
   return `style[${CSS_ATTR}="${experimentId}"]`;
+}
+
+/** Returns the active stylesheet content (SCSS when styleMode is scss, else CSS). */
+function styleContentOf(experiment: Experiment): string {
+  return experiment.styleMode === 'scss' ? (experiment.scss ?? '') : experiment.css;
 }
 
 function event(
@@ -33,8 +38,9 @@ function event(
 export function injectCss(experiment: Experiment): void {
   const tracked = getTracked(experiment.id);
   const existing = document.querySelector<HTMLStyleElement>(cssSelectorFor(experiment.id));
+  const content = styleContentOf(experiment);
 
-  if (!experiment.css.trim()) {
+  if (!content.trim()) {
     if (existing) {
       existing.remove();
       event('css:remove', experiment, 'Removed CSS (experiment is now empty)');
@@ -42,7 +48,7 @@ export function injectCss(experiment: Experiment): void {
     return;
   }
 
-  const hash = contentHash(experiment.css);
+  const hash = contentHash(content);
 
   if (existing && hash === tracked?.cssHash) {
     event('css:skip', experiment, `CSS unchanged (v${experiment.version})`);
@@ -50,7 +56,7 @@ export function injectCss(experiment: Experiment): void {
   }
 
   if (existing) {
-    existing.textContent = experiment.css;
+    existing.textContent = content;
     setTracked(experiment.id, {
       lastVersion: tracked?.lastVersion ?? null,
       cssHash: hash,
@@ -63,7 +69,7 @@ export function injectCss(experiment: Experiment): void {
   const style = document.createElement('style');
   style.setAttribute(CSS_ATTR, experiment.id);
   style.setAttribute('data-elx', 'css');
-  style.textContent = experiment.css;
+  style.textContent = content;
   (document.head || document.documentElement).appendChild(style);
   setTracked(experiment.id, {
     lastVersion: tracked?.lastVersion ?? null,
@@ -71,4 +77,11 @@ export function injectCss(experiment: Experiment): void {
     lastRunAt: Date.now(),
   });
   event('css:inject', experiment, `CSS injected (v${experiment.version})`);
+}
+
+/** Removes the experiment's injected CSS and forgets it so it won't re-run. */
+export function removeCss(experimentId: string): void {
+  const existing = document.querySelector<HTMLStyleElement>(cssSelectorFor(experimentId));
+  if (existing) existing.remove();
+  resetTracked(experimentId);
 }

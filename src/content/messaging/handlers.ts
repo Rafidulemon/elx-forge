@@ -1,5 +1,5 @@
 import type { RuntimeMessage, RuntimeResponse, TabInfo } from '@shared/types/messages';
-import { injectCss } from '../engine/cssInjector';
+import { injectCss, removeCss } from '../engine/cssInjector';
 import { executeJs } from '../engine/jsInjector';
 import { cancelPicker, startPicker } from '../picker/elementPicker';
 
@@ -39,6 +39,12 @@ export function initMessageHandlers(): void {
             }
           })();
           return true; // keep the message channel open for the async response
+        }
+
+        case 'ELX_REMOVE_EXPERIMENT': {
+          removeCss(message.experimentId);
+          sendResponse({ ok: true, data: null });
+          return;
         }
 
         case 'ELX_PICK_ELEMENT': {

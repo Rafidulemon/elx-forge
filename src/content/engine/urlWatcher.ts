@@ -1,10 +1,11 @@
-import { experimentMatchesUrl } from '@shared/utils/urlMatcher';
+import { domainMatches } from '@shared/utils/urlMatcher';
 import { experimentService } from '@shared/storage/experimentService';
 import { projectService } from '@shared/storage/projectService';
 import { createId } from '@shared/utils/id';
 import { emitInjectionEvent } from '../console/consolePort';
-import { injectCss } from './cssInjector';
+import { injectCss, removeCss } from './cssInjector';
 import { executeJs } from './jsInjector';
+import { resetTracked, trackedExperimentIds } from './injectionTracker';
 
 let lastUrl: string | null = null;
 let checkTimer: ReturnType<typeof setTimeout> | null = null;
@@ -14,9 +15,9 @@ function event(type: 'url:changed', message: string): void {
 }
 
 /**
- * Finds enabled, active experiments whose URL rules match the current page
- * and injects them. `force` re-evaluates even if the URL hasn't changed
- * (used when storage changes while we're already on the page).
+ * An experiment runs on the current page when it is enabled, its project is
+ * active, and the page belongs to the project's domain. When any of these are
+ * turned off, the experiment is removed from the page.
  */
 export async function evaluateAndInject(force = false): Promise<void> {
   const url = location.href;
@@ -28,16 +29,27 @@ export async function evaluateAndInject(force = false): Promise<void> {
   const [experiments, projects] = await Promise.all([experimentService.list(), projectService.list()]);
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
-  const matching = experiments.filter(
-    (e) =>
-      e.enabled &&
-      projectById.get(e.projectId)?.active === true &&
-      experimentMatchesUrl(e, url),
-  );
+  const shouldRun = (experimentId: string): boolean => {
+    const experiment = experiments.find((e) => e.id === experimentId);
+    if (!experiment) return false;
+    const project = projectById.get(experiment.projectId);
+    return experiment.enabled && project?.active === true && domainMatches(project.domain, location.hostname);
+  };
 
-  for (const experiment of matching) {
-    injectCss(experiment);
-    void executeJs(experiment);
+  for (const experiment of experiments) {
+    if (shouldRun(experiment.id)) {
+      injectCss(experiment);
+      void executeJs(experiment);
+    }
+  }
+
+  // Remove experiments that are no longer meant to run on this page
+  // (disabled, project deactivated, or different domain).
+  for (const experimentId of trackedExperimentIds()) {
+    if (!shouldRun(experimentId)) {
+      removeCss(experimentId);
+      resetTracked(experimentId);
+    }
   }
 
   // Make `force` idempotent for the current URL.

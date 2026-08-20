@@ -44,7 +44,11 @@ export const useProjectsStore = create<ProjectsState>((set) => ({
   },
 
   update: async (id, patch) => {
-    await projectService.patch(id, patch);
+    if ('active' in patch) {
+      await projectService.setActive(id, patch.active ?? false);
+    } else {
+      await projectService.patch(id, patch);
+    }
     const projects = await projectService.list();
     set({ projects });
   },

@@ -7,7 +7,7 @@ import { useSettingsStore } from '../store/settingsStore';
 
 interface MonacoEditorProps {
   id: string;
-  language: 'javascript' | 'css';
+  language: 'javascript' | 'css' | 'scss';
   value: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
@@ -98,6 +98,16 @@ export function MonacoEditor({ id, language, value, onChange, readOnly = false, 
       editor.setValue(value);
     }
   }, [value]);
+
+  // Switch the model's language (e.g. CSS <-> SCSS) without recreating the editor.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !editor.getModel()) return;
+    void loadMonaco().then((monaco) => {
+      const model = editorRef.current?.getModel();
+      if (model) monaco.editor.setModelLanguage(model, language);
+    });
+  }, [language]);
 
   // Apply editor options when settings change.
   useEffect(() => {

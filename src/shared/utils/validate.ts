@@ -43,6 +43,8 @@ export function isExperiment(value: unknown): value is Experiment {
     isNumber(value.updatedAt) &&
     (value.js === undefined || isString(value.js)) &&
     (value.css === undefined || isString(value.css)) &&
+    (value.scss === undefined || isString(value.scss)) &&
+    (value.styleMode === undefined || value.styleMode === 'css' || value.styleMode === 'scss') &&
     (value.urlRules === undefined || (Array.isArray(value.urlRules) && value.urlRules.every(isUrlRule)))
   );
 }

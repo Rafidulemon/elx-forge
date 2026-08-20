@@ -5,6 +5,7 @@ import { useProjectsStore } from '../store/projectsStore';
 import { useExperimentsStore } from '../store/experimentsStore';
 import { exportExperiment, exportProject } from '@shared/storage/importExport';
 import { downloadText } from '../lib/download';
+import { runExperimentOnProject } from '../lib/runtime';
 import { toast } from '../store/toastStore';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -182,19 +183,13 @@ export function ProjectDetailPage() {
                 <button
                   type="button"
                   className="shrink-0 rounded p-2 text-ink-dim transition-colors hover:bg-brand/15 hover:text-brand"
-                  title="Run on current page"
+                  title="Run on the project's URL"
                   onClick={async () => {
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                    if (!tab?.id) return toast.error('No active tab');
                     try {
-                      await chrome.tabs.sendMessage(tab.id, {
-                        type: 'ELX_RUN_EXPERIMENT',
-                        experiment,
-                        force: true,
-                      });
-                      toast.success(`"${experiment.name}" injected on current page`);
-                    } catch {
-                      toast.error('Cannot reach this page — open a webpage first');
+                      const url = await runExperimentOnProject(project, experiment);
+                      toast.success(`"${experiment.name}" injected on ${url}`);
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'Cannot reach the page');
                     }
                   }}
                 >

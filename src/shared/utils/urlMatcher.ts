@@ -17,7 +17,8 @@ export function normalizeUrl(url: string): string {
 
 /**
  * Normalizes a project domain or host for comparison: strips protocol, `www.`,
- * path and port, then lowercases (e.g. `https://WWW.Nike.com/shop` → `nike.com`).
+ * and path, then lowercases (e.g. `https://WWW.Nike.com/shop` → `nike.com/shop`).
+ * Ports are preserved so `localhost:3000` can be targeted exactly.
  */
 export function normalizeDomain(value: string): string {
   return value
@@ -25,14 +26,13 @@ export function normalizeDomain(value: string): string {
     .toLowerCase()
     .replace(/^https?:\/\//i, '')
     .replace(/^www\./, '')
-    .replace(/:\d+$/, '')
     .replace(/\/.*$/, '');
 }
 
-/** True when the given host belongs to the project's domain (exact match or subdomain). */
+/** True when the given host belongs to the project's domain (exact match or subdomain, ports ignored). */
 export function domainMatches(projectDomain: string, host: string): boolean {
-  const domain = normalizeDomain(projectDomain);
-  const target = normalizeDomain(host);
+  const domain = normalizeDomain(projectDomain).replace(/:\d+$/, '');
+  const target = normalizeDomain(host).replace(/:\d+$/, '');
   if (!domain || !target) return false;
   return target === domain || target.endsWith(`.${domain}`);
 }

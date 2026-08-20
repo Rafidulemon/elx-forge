@@ -16,6 +16,14 @@ export function setTracked(experimentId: string, state: TrackedInjection): void 
   tracker.set(experimentId, state);
 }
 
+export function resetTracked(experimentId: string): void {
+  tracker.delete(experimentId);
+}
+
+export function trackedExperimentIds(): string[] {
+  return [...tracker.keys()];
+}
+
 export function resetTracker(): void {
   tracker.clear();
 }
