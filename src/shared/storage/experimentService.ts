@@ -37,6 +37,30 @@ class ExperimentService extends StorageService<Experiment> {
     return this.set(experiment);
   }
 
+  /**
+   * Writes an experiment. When the experiment is enabled it becomes the
+   * project's single active experiment — every other experiment of the same
+   * project is disabled so only one can run at a time. This is enforced here
+   * (rather than in the UI) so every caller, including the popup and Run,
+   * respects the rule.
+   */
+  override async set(experiment: Experiment): Promise<Experiment> {
+    const saved = await super.set(experiment);
+    if (experiment.enabled) {
+      await this.disableOtherExperiments(experiment.projectId, experiment.id);
+    }
+    return saved;
+  }
+
+  private async disableOtherExperiments(projectId: string, exceptId: string): Promise<void> {
+    const all = await this.listByProject(projectId);
+    for (const exp of all) {
+      if (exp.id !== exceptId && exp.enabled) {
+        await super.patch(exp.id, { enabled: false });
+      }
+    }
+  }
+
   async listByProject(projectId: string): Promise<Experiment[]> {
     const all = await this.list();
     return all.filter((e) => e.projectId === projectId);

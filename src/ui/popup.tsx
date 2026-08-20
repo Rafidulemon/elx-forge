@@ -5,7 +5,7 @@ import type { Experiment } from '@shared/types/experiment';
 import type { Project } from '@shared/types/project';
 import { experimentService } from '@shared/storage/experimentService';
 import { projectService } from '@shared/storage/projectService';
-import { domainMatches, experimentMatchesUrl } from '@shared/utils/urlMatcher';
+import { domainMatches, experimentMatchesUrl, normalizeDomain } from '@shared/utils/urlMatcher';
 import { getActiveTab, isHttpUrl, openStudio, refreshProjectTab, runExperimentOnProject, stopExperimentOnProject } from './lib/runtime';
 import { Button } from './components/ui/Button';
 import { Badge } from './components/ui/Badge';
@@ -67,7 +67,7 @@ function PopupApp() {
             ? {
                 ...group,
                 experiments: group.experiments
-                  .map((e) => (e.id === experiment.id ? { ...e, enabled: true } : e))
+                  .map((e) => (e.id === experiment.id ? { ...e, enabled: true } : { ...e, enabled: false }))
                   .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt),
               }
             : group,
@@ -110,7 +110,7 @@ function PopupApp() {
       prev.map((group) => {
         if (group.project.id !== project.id) return group;
         const experiments = group.experiments
-          .map((e) => (e.id === experiment.id ? { ...e, enabled } : e))
+          .map((e) => (e.id === experiment.id ? { ...e, enabled } : enabled ? { ...e, enabled: false } : e))
           .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt);
         return {
           project: enabled && !group.project.active ? { ...group.project, active: true } : group.project,
@@ -133,14 +133,25 @@ function PopupApp() {
       void projectService.setActive(project.id, false).then(() => void refreshProjectTab(project));
     }
     setGroups((prev) =>
-      prev.map((group) =>
-        group.project.id === project.id
-          ? {
-              project: { ...group.project, active },
-              experiments: active ? group.experiments : group.experiments.map((e) => ({ ...e, enabled: false })),
-            }
-          : group,
-      ),
+      prev.map((group) => {
+        if (group.project.id === project.id) {
+          return {
+            project: { ...group.project, active },
+            experiments: active ? group.experiments : group.experiments.map((e) => ({ ...e, enabled: false })),
+          };
+        }
+        if (
+          active &&
+          group.project.active &&
+          normalizeDomain(group.project.domain) === normalizeDomain(project.domain)
+        ) {
+          return {
+            project: { ...group.project, active: false },
+            experiments: group.experiments.map((e) => ({ ...e, enabled: false })),
+          };
+        }
+        return group;
+      }),
     );
   };
 

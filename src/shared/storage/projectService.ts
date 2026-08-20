@@ -1,6 +1,7 @@
 import type { Project } from '../types/project';
 import { createId } from '../utils/id';
 import { now } from '../utils/time';
+import { normalizeDomain } from '../utils/urlMatcher';
 import { StorageService } from './storageService';
 import { experimentService } from './experimentService';
 
@@ -26,23 +27,49 @@ class ProjectService extends StorageService<Project> {
       createdAt: ts,
       updatedAt: ts,
     };
-    return this.set(project);
+    await this.set(project);
+    await this.deactivateProjectsForDomain(project.domain, project.id);
+    return project;
+  }
+
+  /** Disables every experiment belonging to a project (used when the project is deactivated). */
+  private async disableExperiments(projectId: string): Promise<void> {
+    const experiments = await experimentService.listByProject(projectId);
+    for (const exp of experiments) {
+      if (exp.enabled) await experimentService.patch(exp.id, { enabled: false });
+    }
   }
 
   /**
-   * Toggles the project's active state. Deactivating a project disables all of
-   * its experiments too; reactivating leaves them disabled so the user has to
-   * manually re-enable each one.
+   * Deactivates every other project whose domain matches the given one, so
+   * only one project per domain is ever active. Matching projects also get
+   * their experiments disabled (they can no longer run anyway).
+   */
+  private async deactivateProjectsForDomain(domain: string, exceptId: string): Promise<void> {
+    const normalized = normalizeDomain(domain);
+    if (!normalized) return;
+    const all = await this.list();
+    for (const project of all) {
+      if (project.id !== exceptId && project.active && normalizeDomain(project.domain) === normalized) {
+        await this.patch(project.id, { active: false });
+        await this.disableExperiments(project.id);
+      }
+    }
+  }
+
+  /**
+   * Toggles the project's active state. Activating a project deactivates every
+   * other project for the same domain (and disables their experiments).
+   * Deactivating a project disables all of its experiments too.
    */
   async setActive(id: string, active: boolean): Promise<Project | undefined> {
     const project = await this.get(id);
     if (!project) return undefined;
     await this.patch(id, { active });
-    if (!active) {
-      const experiments = await experimentService.listByProject(id);
-      for (const exp of experiments) {
-        if (exp.enabled) await experimentService.patch(exp.id, { enabled: false });
-      }
+    if (active) {
+      await this.deactivateProjectsForDomain(project.domain, id);
+    } else {
+      await this.disableExperiments(id);
     }
     return { ...project, active };
   }

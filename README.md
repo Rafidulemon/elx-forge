@@ -22,6 +22,8 @@ Built by [Echologyx](https://www.echologyx.com).
 ## Key Behaviors
 
 - **Enable = run, disable = stop.** Flipping an experiment's toggle on injects it on the project's URL immediately; flipping it off removes its CSS and stops auto-injection.
+- **One experiment per project.** Only one experiment per project can be enabled at a time — enabling one disables the rest of the project's experiments.
+- **One project per domain.** Only one project per domain can be active at a time — activating one deactivates the other projects (and their experiments) for the same domain. This also applies when a project is created for a domain that already has an active project.
 - **Run enables.** Clicking **Run** also turns the experiment's enable toggle on.
 - **Tests target the project URL.** Runs (and the element picker) use the domain set when the project was created, not the currently active tab.
 - **Deactivating a project disables its experiments.** Reactivating the project leaves them off — each must be manually re-enabled.
