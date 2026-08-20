@@ -145,7 +145,7 @@ function PopupApp() {
         </div>
         <button
           type="button"
-          onClick={openStudio}
+          onClick={() => openStudio()}
           className="rounded border border-line bg-elev px-2 py-1 text-[11px] font-medium text-brand transition-colors hover:bg-hover"
         >
           Open Studio
@@ -167,7 +167,7 @@ function PopupApp() {
             title="No project for this site"
             description="Open Studio and create a project targeting this domain to manage its experiments here."
             action={
-              <Button variant="primary" size="sm" onClick={openStudio}>
+              <Button variant="primary" size="sm" onClick={() => openStudio()}>
                 Open Studio
               </Button>
             }
@@ -196,8 +196,13 @@ function PopupApp() {
               {groups.map(({ project, experiments }) => (
                 <section key={project.id} className="panel overflow-hidden">
                   <div className="flex items-center gap-2 border-b border-line bg-elev/60 px-3 py-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-semibold">{project.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => openStudio(`/project/${project.id}`)}
+                      className="min-w-0 flex-1 text-left transition-colors"
+                      title="Open project in Studio"
+                    >
+                      <p className="truncate text-[12px] font-semibold hover:text-brand">{project.name}</p>
                       <div className="mt-0.5 flex items-center gap-1.5">
                         {project.domain && (
                           <Badge tone="brand" className="!px-1 !text-[10px]">
@@ -208,7 +213,7 @@ function PopupApp() {
                           {project.active ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
-                    </div>
+                    </button>
                     <Toggle
                       checked={project.active}
                       label={`${project.name} active`}
@@ -229,8 +234,13 @@ function PopupApp() {
                             key={experiment.id}
                             className="flex items-center gap-2 border-b border-line px-3 py-2 last:border-b-0"
                           >
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-[12px] font-medium">{experiment.name}</p>
+                            <button
+                              type="button"
+                              onClick={() => openStudio(`/project/${project.id}/experiment/${experiment.id}`)}
+                              className="min-w-0 flex-1 text-left transition-colors"
+                              title="Open experiment in Studio"
+                            >
+                              <p className="truncate text-[12px] font-medium hover:text-brand">{experiment.name}</p>
                               <div className="mt-0.5 flex items-center gap-1.5">
                                 <Badge tone={experiment.enabled ? 'ok' : 'neutral'} className="!px-1 !text-[10px]">
                                   {experiment.enabled ? 'Active' : 'Inactive'}
@@ -244,7 +254,7 @@ function PopupApp() {
                                   </Badge>
                                 )}
                               </div>
-                            </div>
+                            </button>
                             <div className="flex shrink-0 items-center gap-1">
                               <Toggle
                                 checked={experiment.enabled}

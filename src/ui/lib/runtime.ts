@@ -49,8 +49,8 @@ export function sendToTab<T = unknown>(tabId: number, message: RuntimeMessage): 
   return chrome.tabs.sendMessage(tabId, message);
 }
 
-export function openStudio(): void {
-  void chrome.runtime.sendMessage({ type: 'ELX_OPEN_STUDIO' });
+export function openStudio(path = ''): void {
+  void chrome.runtime.sendMessage({ type: 'ELX_OPEN_STUDIO', path });
 }
 
 export async function runExperimentInTab(tabId: number, experiment: Experiment, force = true): Promise<void> {
@@ -107,18 +107,18 @@ async function waitForContentScript(tabId: number, attempts = 12): Promise<void>
 }
 
 /**
- * Resolves the tab that should receive injections for a project: an existing
- * tab matching the project's domain (activated and focused), or a newly opened
- * tab at that URL waited for to finish loading.
+ * Resolves the tab that should receive injections for a project: the most
+ * recently accessed existing tab matching the project's domain (activated and
+ * focused), or a newly opened tab at that URL waited for to finish loading.
  */
 export async function findOrOpenProjectTab(project: Project): Promise<chrome.tabs.Tab> {
   const target = projectUrl(project);
   if (!target) throw new Error('Project has no domain set');
 
   const tabs = await chrome.tabs.query({});
-  const existing = tabs.find(
-    (t) => t.id !== undefined && !!t.url && isHttpUrl(t.url) && domainMatches(project.domain, new URL(t.url).host),
-  );
+  const existing = tabs
+    .filter((t) => t.id !== undefined && !!t.url && isHttpUrl(t.url) && domainMatches(project.domain, new URL(t.url).host))
+    .sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0))[0];
   if (existing && existing.id !== undefined) {
     await chrome.tabs.update(existing.id, { active: true });
     if (existing.windowId !== undefined) {
@@ -138,6 +138,18 @@ export async function runExperimentOnProject(project: Project, experiment: Exper
   if (!target.enabled) {
     await experimentService.patch(target.id, { enabled: true });
     target = { ...target, enabled: true };
+  }
+  if (target.styleMode === 'scss' && target.scss) {
+    const { compileScss } = await import('./scss');
+    try {
+      const compiled = await compileScss(target.scss);
+      if (compiled) {
+        target = { ...target, css: compiled };
+        await experimentService.patch(target.id, { css: compiled });
+      }
+    } catch {
+      // keep whatever CSS is already stored
+    }
   }
   const tab = await findOrOpenProjectTab(project);
   await waitForContentScript(tab.id!);
@@ -166,16 +178,16 @@ export async function removeExperimentFromProject(project: Project, experimentId
   );
 }
 
-/** Reloads an existing tab on the project's domain, if one is open. */
+/** Reloads every existing tab on the project's domain, if any are open. */
 export async function refreshProjectTab(project: Project): Promise<boolean> {
   const target = projectUrl(project);
   if (!target) return false;
   const tabs = await chrome.tabs.query({});
-  const existing = tabs.find(
+  const matching = tabs.filter(
     (t) => t.id !== undefined && !!t.url && isHttpUrl(t.url) && domainMatches(project.domain, new URL(t.url).host),
   );
-  if (!existing?.id) return false;
-  await chrome.tabs.reload(existing.id);
+  if (matching.length === 0) return false;
+  await Promise.all(matching.map((t) => chrome.tabs.reload(t.id!)));
   return true;
 }
 

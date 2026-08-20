@@ -5,6 +5,7 @@ import type { ElementPickResult, Experiment } from '@shared/types';
 import { experimentService } from '@shared/storage/experimentService';
 import { exportExperiment } from '@shared/storage/importExport';
 import { copyText, downloadText } from '../lib/download';
+import { compileScss } from '../lib/scss';
 import { formatActiveEditor } from '../lib/editorRegistry';
 import { pickElementOnProject, projectUrl, runExperimentOnProject } from '../lib/runtime';
 import { toast } from '../store/toastStore';
@@ -108,6 +109,13 @@ export function ExperimentEditorPage() {
     setSaving(true);
     try {
       const next: Experiment = { ...draft, version: draft.version + 1, updatedAt: now() };
+      if (next.styleMode === 'scss') {
+        try {
+          next.css = await compileScss(next.scss ?? '');
+        } catch (err) {
+          if (!silent) toast.error(err instanceof Error ? `SCSS error: ${err.message}` : 'SCSS compile failed');
+        }
+      }
       await experimentService.set(next);
       setDraft(next);
       setSavedAt(now());
@@ -130,7 +138,7 @@ export function ExperimentEditorPage() {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft?.js, draft?.css]);
+  }, [draft?.js, draft?.css, draft?.scss]);
 
   const run = async (): Promise<void> => {
     if (!draft || !project) return;

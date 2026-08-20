@@ -96,7 +96,8 @@ export function initMessageRouter(): void {
   chrome.runtime.onMessage.addListener(
     (message: RuntimeMessage, sender, sendResponse: (response?: RuntimeResponse) => void) => {
       if (message.type === 'ELX_OPEN_STUDIO') {
-        chrome.tabs.create({ url: chrome.runtime.getURL('index.html') });
+        const url = `${chrome.runtime.getURL('index.html')}${message.path ? `#${message.path}` : ''}`;
+        chrome.tabs.create({ url });
         sendResponse({ ok: true, data: null });
         return;
       }

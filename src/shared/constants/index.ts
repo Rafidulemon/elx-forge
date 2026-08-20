@@ -73,5 +73,5 @@ export const DEFAULT_SETTINGS: Settings = {
   tabSize: 2,
   wordWrap: false,
   autoSave: true,
-  showMinimap: false,
+  showMinimap: true,
 };

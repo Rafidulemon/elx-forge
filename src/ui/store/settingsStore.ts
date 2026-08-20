@@ -17,7 +17,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     tabSize: 2,
     wordWrap: false,
     autoSave: true,
-    showMinimap: false,
+    showMinimap: true,
   },
   loaded: false,
 

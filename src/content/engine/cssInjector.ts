@@ -10,9 +10,14 @@ function cssSelectorFor(experimentId: string): string {
   return `style[${CSS_ATTR}="${experimentId}"]`;
 }
 
-/** Returns the active stylesheet content (SCSS when styleMode is scss, else CSS). */
+/**
+ * Returns the stylesheet content to inject. CSS mode injects the raw CSS;
+ * SCSS mode injects the compiled CSS stored in `css` (compiled on save / run),
+ * falling back to the raw SCSS source if no compiled output exists yet.
+ */
 function styleContentOf(experiment: Experiment): string {
-  return experiment.styleMode === 'scss' ? (experiment.scss ?? '') : experiment.css;
+  if (experiment.styleMode !== 'scss') return experiment.css;
+  return experiment.css.trim() ? experiment.css : (experiment.scss ?? '');
 }
 
 function event(
