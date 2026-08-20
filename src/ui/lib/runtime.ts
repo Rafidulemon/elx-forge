@@ -193,6 +193,16 @@ export async function removeExperimentFromProject(project: Project, experimentId
   );
 }
 
+/**
+ * Disables an experiment and reloads every open tab on the project's domain so
+ * any injected JS/DOM changes are fully removed from the page.
+ */
+export async function stopExperimentOnProject(project: Project, experimentId: string): Promise<void> {
+  await experimentService.patch(experimentId, { enabled: false });
+  await removeExperimentFromProject(project, experimentId);
+  await refreshProjectTab(project);
+}
+
 /** Reloads every existing tab on the project's domain, if any are open. */
 export async function refreshProjectTab(project: Project): Promise<boolean> {
   const target = projectUrl(project);

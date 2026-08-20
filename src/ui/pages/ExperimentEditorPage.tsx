@@ -8,7 +8,7 @@ import { exportExperiment } from '@shared/storage/importExport';
 import { copyText, downloadText } from '../lib/download';
 import { compileScss } from '../lib/scss';
 import { formatActiveEditor } from '../lib/editorRegistry';
-import { pickElementOnProject, projectUrl, refreshProjectTab, runExperimentOnProject } from '../lib/runtime';
+import { pickElementOnProject, projectUrl, refreshProjectTab, runExperimentOnProject, stopExperimentOnProject } from '../lib/runtime';
 import { toast } from '../store/toastStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useProjectsStore } from '../store/projectsStore';
@@ -108,9 +108,12 @@ export function ExperimentEditorPage() {
 
   const toggleEnabled = (enabled: boolean): void => {
     patch({ enabled });
-    if (draft) {
+    if (!draft) return;
+    if (enabled) {
       void experimentService.patch(draft.id, { enabled });
-      if (enabled && project && !project.active) void projectService.setActive(project.id, true);
+      if (project && !project.active) void projectService.setActive(project.id, true);
+    } else {
+      if (project) void stopExperimentOnProject(project, draft.id);
     }
   };
 

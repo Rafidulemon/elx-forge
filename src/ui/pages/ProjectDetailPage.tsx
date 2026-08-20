@@ -5,7 +5,7 @@ import { useProjectsStore } from '../store/projectsStore';
 import { useExperimentsStore } from '../store/experimentsStore';
 import { exportExperiment, exportProject } from '@shared/storage/importExport';
 import { downloadText } from '../lib/download';
-import { runExperimentOnProject } from '../lib/runtime';
+import { runExperimentOnProject, refreshProjectTab, stopExperimentOnProject } from '../lib/runtime';
 import { toast } from '../store/toastStore';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -135,7 +135,10 @@ export function ProjectDetailPage() {
         <div className="flex shrink-0 items-center gap-2">
           <Toggle
             checked={project.active}
-            onChange={(v) => void updateProject(project.id, { active: v })}
+            onChange={(v) => {
+              void updateProject(project.id, { active: v });
+              if (!v) void refreshProjectTab(project);
+            }}
           />
           <Button variant="subtle" size="sm" onClick={() => setImportOpen(true)}>
             <IconUpload width={14} height={14} />
@@ -213,7 +216,14 @@ export function ProjectDetailPage() {
                 <div className="flex shrink-0 items-center gap-2">
                   <Toggle
                     checked={experiment.enabled}
-                    onChange={(v) => void useExperimentsStore.getState().update(experiment.id, { enabled: v })}
+                    onChange={(v) => {
+                      void useExperimentsStore.getState().update(experiment.id, { enabled: v });
+                      if (v) {
+                        void runExperimentOnProject(project, { ...experiment, enabled: v });
+                      } else {
+                        void stopExperimentOnProject(project, experiment.id);
+                      }
+                    }}
                   />
                   <Button
                     size="sm"

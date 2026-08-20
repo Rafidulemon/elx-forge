@@ -6,6 +6,7 @@ import { useExperimentsStore } from '../store/experimentsStore';
 import { exportProject } from '@shared/storage/importExport';
 import { downloadText } from '../lib/download';
 import { toast } from '../store/toastStore';
+import { refreshProjectTab } from '../lib/runtime';
 import { timeAgo } from '@shared/utils/time';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -95,7 +96,13 @@ function ProjectCard({ project, onDelete, onDuplicate, onExport }: {
       <div className="flex items-start justify-between gap-2">
         <h3 className="truncate text-[15px] font-semibold group-hover:text-brand">{project.name}</h3>
         <div className="relative z-10">
-          <Toggle checked={project.active} onChange={(v) => void update(project.id, { active: v })} />
+          <Toggle
+            checked={project.active}
+            onChange={(v) => {
+              void update(project.id, { active: v });
+              if (!v) void refreshProjectTab(project);
+            }}
+          />
         </div>
       </div>
       <p className="line-clamp-2 min-h-[32px] text-[12px] text-ink-dim">

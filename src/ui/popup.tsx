@@ -6,7 +6,7 @@ import type { Project } from '@shared/types/project';
 import { experimentService } from '@shared/storage/experimentService';
 import { projectService } from '@shared/storage/projectService';
 import { domainMatches, experimentMatchesUrl } from '@shared/utils/urlMatcher';
-import { getActiveTab, isHttpUrl, openStudio, refreshProjectTab, removeExperimentFromProject, runExperimentOnProject } from './lib/runtime';
+import { getActiveTab, isHttpUrl, openStudio, refreshProjectTab, runExperimentOnProject, stopExperimentOnProject } from './lib/runtime';
 import { Button } from './components/ui/Button';
 import { Badge } from './components/ui/Badge';
 import { EmptyState } from './components/ui/EmptyState';
@@ -122,12 +122,16 @@ function PopupApp() {
       if (!project.active) void projectService.setActive(project.id, true);
       void runExperimentOnProject(project, { ...experiment, enabled });
     } else {
-      void removeExperimentFromProject(project, experiment.id);
+      void stopExperimentOnProject(project, experiment.id);
     }
   };
 
   const patchProject = (project: Project, active: boolean): void => {
-    void projectService.setActive(project.id, active);
+    if (active) {
+      void projectService.setActive(project.id, true);
+    } else {
+      void projectService.setActive(project.id, false).then(() => void refreshProjectTab(project));
+    }
     setGroups((prev) =>
       prev.map((group) =>
         group.project.id === project.id
