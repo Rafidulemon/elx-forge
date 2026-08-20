@@ -29,7 +29,11 @@ function resolveReady(value: boolean): void {
  * otherwise scripting.executeScript in the MAIN world.
  */
 export function ensureBridge(): void {
-  void chrome.runtime.sendMessage({ type: 'ELX_INJECT_BRIDGE' }).catch(() => undefined);
+  try {
+    void chrome.runtime.sendMessage({ type: 'ELX_INJECT_BRIDGE' }).catch(() => undefined);
+  } catch {
+    // Extension context invalidated; a fresh page load will re-inject.
+  }
 }
 
 export function isBridgeReady(): boolean {

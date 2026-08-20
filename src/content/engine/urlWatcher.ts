@@ -60,7 +60,7 @@ function scheduleCheck(): void {
   if (checkTimer) clearTimeout(checkTimer);
   checkTimer = setTimeout(() => {
     checkTimer = null;
-    void evaluateAndInject();
+    void evaluateAndInject().catch(() => undefined);
   }, 300);
 }
 
@@ -88,12 +88,12 @@ function patchHistory(): void {
 
 export function initUrlWatcher(): void {
   patchHistory();
-  void evaluateAndInject();
+  void evaluateAndInject().catch(() => undefined);
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (changes['elx.experiments'] || changes['elx.projects']) {
-      void evaluateAndInject(true);
+      void evaluateAndInject(true).catch(() => undefined);
     }
   });
 }

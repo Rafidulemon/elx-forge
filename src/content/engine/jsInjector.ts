@@ -2,7 +2,7 @@ import type { Experiment } from '@shared/types/experiment';
 import { createId } from '@shared/utils/id';
 import { emitInjectionEvent } from '../console/consolePort';
 import { getTracked, setTracked } from './injectionTracker';
-import { subscribeExecuted, waitForBridge } from '../bridge/bridgeController';
+import { ensureBridge, subscribeExecuted, waitForBridge } from '../bridge/bridgeController';
 
 function event(
   type: 'js:inject' | 'js:rerun' | 'js:skip' | 'js:error' | 'system',
@@ -60,10 +60,11 @@ export async function executeJs(experiment: Experiment, force = false): Promise<
 
   const ready = await waitForBridge();
   if (!ready) {
+    ensureBridge();
     event(
       'js:error',
       experiment,
-      'Bridge not ready — the page CSP may be blocking ELX Forge. Check the built-in console.',
+      'Bridge not ready — a strict page CSP is likely blocking it. Enable "Allow User Scripts" for ELX Forge (chrome://extensions → Details) so the script runs CSP-exempt, then reload the page.',
     );
   }
 

@@ -8,7 +8,14 @@ let connecting = false;
 function connect(): void {
   if (connecting) return;
   connecting = true;
-  port = chrome.runtime.connect({ name: PORT_CONTENT_SOURCE });
+  try {
+    port = chrome.runtime.connect({ name: PORT_CONTENT_SOURCE });
+  } catch {
+    // Extension context invalidated; retry later.
+    connecting = false;
+    window.setTimeout(connect, 2000);
+    return;
+  }
   connecting = false;
   port.onDisconnect.addListener(() => {
     port = null;
