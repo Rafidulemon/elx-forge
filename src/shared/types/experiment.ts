@@ -26,6 +26,8 @@ export interface Experiment {
   css: string;
   scss?: string;
   styleMode?: 'css' | 'scss';
+  /** When true the JS runs before the DOM is built (document_start); when false it runs after the DOM is built but before images/frames finish loading (DOMContentLoaded). */
+  runAtStart?: boolean;
   enabled: boolean;
   version: number;
   createdAt: number;

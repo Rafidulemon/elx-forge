@@ -1,7 +1,7 @@
 import type { Experiment } from '../types/experiment';
 import { createId } from '../utils/id';
 import { now } from '../utils/time';
-import { DEFAULT_EXPERIMENT_JS, DEFAULT_EXPERIMENT_SCSS } from '../constants';
+import { DEFAULT_EXPERIMENT_CSS, DEFAULT_EXPERIMENT_JS, DEFAULT_EXPERIMENT_SCSS } from '../constants';
 import { StorageService } from './storageService';
 
 export interface ExperimentInput {
@@ -25,9 +25,10 @@ class ExperimentService extends StorageService<Experiment> {
       notes: '',
       urlRules: [],
       js: DEFAULT_EXPERIMENT_JS,
-      css: '',
+      css: DEFAULT_EXPERIMENT_CSS,
       scss: DEFAULT_EXPERIMENT_SCSS,
-      styleMode: 'scss',
+      styleMode: 'css',
+      runAtStart: false,
       enabled: false,
       version: 1,
       createdAt: ts,

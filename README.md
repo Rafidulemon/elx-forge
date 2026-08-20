@@ -26,6 +26,7 @@ Built by [Echologyx](https://www.echologyx.com).
 - **Tests target the project URL.** Runs (and the element picker) use the domain set when the project was created, not the currently active tab.
 - **Deactivating a project disables its experiments.** Reactivating the project leaves them off — each must be manually re-enabled.
 - **SCSS is the default style editor.** Each experiment can be authored as `style.css` or `style.scss` via the CSS/SCSS toggle in the editor toolbar.
+- **Run at start.** Each experiment has a "Run at start" toggle — on, its JS runs before the DOM is built; off, it runs after the DOM is parsed (but before images/frames finish loading). CSS is always injected early to avoid FOUC.
 
 ## Tech Stack
 

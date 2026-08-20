@@ -19,10 +19,21 @@ function event(
   });
 }
 
+/** Resolves once the DOM has been built (DOMContentLoaded) or immediately if it already is. */
+function domReady(): Promise<void> {
+  if (document.readyState !== 'loading') return Promise.resolve();
+  return new Promise((resolve) => {
+    document.addEventListener('DOMContentLoaded', () => resolve(), { once: true });
+  });
+}
+
 /**
  * Executes the experiment's JS in the page's MAIN world by appending a
  * `<script>` element. Dedup is version-based: the same version only runs
  * once per page load unless `force` is set (explicit "Run" / rerun).
+ * When `runAtStart` is false the script waits for the DOM to be built
+ * (DOMContentLoaded) before executing — i.e. after the DOM is parsed but
+ * before images and frames finish loading.
  */
 export async function executeJs(experiment: Experiment, force = false): Promise<void> {
   const tracked = getTracked(experiment.id);
@@ -41,6 +52,10 @@ export async function executeJs(experiment: Experiment, force = false): Promise<
     });
     event('system', experiment, 'No JS to run (empty script)');
     return;
+  }
+
+  if (experiment.runAtStart !== true) {
+    await domReady();
   }
 
   const ready = await waitForBridge();

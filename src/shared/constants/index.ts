@@ -50,7 +50,20 @@ export const DEFAULT_EXPERIMENT_JS = `(() => {
   waitForElem("body", mainJs);
 })();`;
 
-/** Starter SCSS written into every new experiment (SCSS is the default style mode). */
+/** Starter CSS written into every new experiment (CSS is the default style mode). */
+export const DEFAULT_EXPERIMENT_CSS = `html::before {
+  content: "ELX-Forge Connected";
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99999999999;
+  background: #ff6a00ff;
+  color: #000000;
+  padding: 10px;
+  border: 7px solid #000000;
+}`;
+
+/** Starter SCSS (available via the editor's CSS/SCSS toggle). */
 export const DEFAULT_EXPERIMENT_SCSS = `html {
   position: relative;
 

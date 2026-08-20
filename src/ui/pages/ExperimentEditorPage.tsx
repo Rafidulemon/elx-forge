@@ -236,6 +236,13 @@ export function ExperimentEditorPage() {
           )}
         </div>
         <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
+          <div
+            className="flex items-center gap-1.5 text-[11px] text-ink-dim"
+            title="Run before the DOM is built, or after the DOM is parsed (but before images/frames finish loading)"
+          >
+            <span className="hidden lg:inline">Run at start</span>
+            <Toggle checked={draft.runAtStart ?? false} onChange={(v) => patch({ runAtStart: v })} label="Run at start" />
+          </div>
           {savedAt && (
             <span className="mr-1 text-[11px] text-ink-dim">
               {saving ? 'Saving…' : `Saved ${new Date(savedAt).toLocaleTimeString()}`}

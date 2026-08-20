@@ -22,6 +22,7 @@ export default defineConfig({
       input: {
         index: resolve(root, 'index.html'),
         popup: resolve(root, 'popup.html'),
+        sandbox: resolve(root, 'sandbox.html'),
       },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
