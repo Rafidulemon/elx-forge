@@ -3,11 +3,12 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { ElementPickResult, Experiment } from '@shared/types';
 import { experimentService } from '@shared/storage/experimentService';
+import { projectService } from '@shared/storage/projectService';
 import { exportExperiment } from '@shared/storage/importExport';
 import { copyText, downloadText } from '../lib/download';
 import { compileScss } from '../lib/scss';
 import { formatActiveEditor } from '../lib/editorRegistry';
-import { pickElementOnProject, projectUrl, runExperimentOnProject } from '../lib/runtime';
+import { pickElementOnProject, projectUrl, refreshProjectTab, runExperimentOnProject } from '../lib/runtime';
 import { toast } from '../store/toastStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useProjectsStore } from '../store/projectsStore';
@@ -60,10 +61,14 @@ export function ExperimentEditorPage() {
   const [pickOpen, setPickOpen] = useState(false);
   const [pickResult, setPickResult] = useState<ElementPickResult | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [scssError, setScssError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const activeTab = useActiveTab();
   const settings = useSettingsStore((s) => s.settings);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftRef = useRef<Experiment | null>(null);
+  draftRef.current = draft;
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +76,7 @@ export function ExperimentEditorPage() {
     void experimentService.get(experimentId).then((experiment) => {
       if (cancelled) return;
       setDraft(experiment ?? null);
+      setDirty(false);
       setLoading(false);
     });
     return () => {
@@ -97,29 +103,47 @@ export function ExperimentEditorPage() {
 
   const patch = (partial: Partial<Experiment>): void => {
     setDraft((d) => (d ? { ...d, ...partial, updatedAt: now() } : d));
+    setDirty(true);
   };
 
   const toggleEnabled = (enabled: boolean): void => {
     patch({ enabled });
-    if (draft) void experimentService.patch(draft.id, { enabled });
+    if (draft) {
+      void experimentService.patch(draft.id, { enabled });
+      if (enabled && project && !project.active) void projectService.setActive(project.id, true);
+    }
   };
 
   const save = async (silent = false): Promise<void> => {
-    if (!draft) return;
+    const base = draftRef.current;
+    if (!base) return;
     setSaving(true);
     try {
-      const next: Experiment = { ...draft, version: draft.version + 1, updatedAt: now() };
-      if (next.styleMode === 'scss') {
+      const next: Experiment = { ...base, version: base.version + 1, updatedAt: now() };
+      const styleSrc = next.scss?.trim() ? next.scss : next.css;
+      if (styleSrc.trim()) {
         try {
-          next.css = await compileScss(next.scss ?? '');
+          next.css = await compileScss(styleSrc);
+          setScssError(null);
         } catch (err) {
-          if (!silent) toast.error(err instanceof Error ? `SCSS error: ${err.message}` : 'SCSS compile failed');
+          const message = err instanceof Error ? err.message : 'SCSS compile failed';
+          setScssError(message);
+          next.css = styleSrc;
+          if (!silent) toast.error(`SCSS error: ${message}`);
         }
+      } else {
+        setScssError(null);
       }
       await experimentService.set(next);
-      setDraft(next);
       setSavedAt(now());
-      if (!silent) toast.success('Experiment saved');
+      if (draftRef.current === base) {
+        setDraft(next);
+        setDirty(false);
+      }
+      if (!silent) {
+        toast.success('Experiment saved');
+        if (project) void refreshProjectTab(project);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Save failed');
     } finally {
@@ -143,8 +167,11 @@ export function ExperimentEditorPage() {
   const run = async (): Promise<void> => {
     if (!draft || !project) return;
     try {
-      const url = await runExperimentOnProject(project, draft);
-      toast.success(`"${draft.name}" injected on ${url}`);
+      await save(true);
+      const saved = await experimentService.get(draft.id);
+      if (!saved) return;
+      const url = await runExperimentOnProject(project, saved);
+      toast.success(`"${saved.name}" injected on ${url}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Cannot reach the page');
     }
@@ -192,17 +219,19 @@ export function ExperimentEditorPage() {
 
   const testUrl = project ? projectUrl(project) ?? activeTab?.url ?? null : activeTab?.url ?? null;
 
-  const styleMode = draft.styleMode ?? 'css';
   const jsContent = draft.js;
-  const styleContent = styleMode === 'scss' ? draft.scss ?? '' : draft.css;
+  const styleContent = draft.scss?.trim() ? draft.scss : draft.css;
+  const styleLanguage = /(^|[;{}])\s*\$[\w-]+\s*:|&\s*[.#:[(]|@(?:mixin|include|use|import|extend|function|if|for|each|while)\b/.test(
+    styleContent,
+  )
+    ? 'scss'
+    : 'css';
 
   const copyJs = (): void => {
     void copyText(jsContent).then(() => toast.success('Copied index.js'));
   };
   const copyStyle = (): void => {
-    void copyText(styleContent).then(() =>
-      toast.success(`Copied ${styleMode === 'scss' ? 'style.scss' : 'style.css'}`),
-    );
+    void copyText(styleContent).then(() => toast.success('Copied style'));
   };
 
   return (
@@ -253,7 +282,7 @@ export function ExperimentEditorPage() {
             size="sm"
             onClick={() => void save()}
             title="Save (Ctrl+S)"
-            disabled={saving}
+            disabled={!dirty || saving}
           >
             <IconSave width={14} height={14} />
             Save
@@ -358,33 +387,21 @@ export function ExperimentEditorPage() {
             </div>
             <div className="flex h-full flex-col">
               <EditorToolbar
-                label={styleMode === 'scss' ? 'style.scss' : 'style.css'}
-                lang={styleMode === 'scss' ? 'SCSS' : 'CSS'}
+                label="style.css / style.scss"
+                lang={styleLanguage === 'scss' ? 'SCSS' : 'CSS'}
                 value={styleContent}
                 onCopy={copyStyle}
-              >
-                <div className="flex rounded border border-line bg-panel p-0.5">
-                  {(['css', 'scss'] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => patch({ styleMode: mode })}
-                      className={cn(
-                        'rounded px-2 py-0.5 text-[11px] uppercase transition-colors',
-                        styleMode === mode ? 'bg-hover text-ink' : 'text-ink-dim hover:text-ink',
-                      )}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              </EditorToolbar>
+              />
+              {scssError && (
+                <div className="border-b border-line bg-err/10 px-3 py-1.5 text-[11px] text-err">{scssError}</div>
+              )}
               <div className="min-h-0 flex-1">
                 <MonacoEditor
                   id={`css-${experimentId}`}
-                  language={styleMode === 'scss' ? 'scss' : 'css'}
+                  language={styleLanguage}
+                  placeholder="Write CSS or SCSS here"
                   value={styleContent}
-                  onChange={(v) => patch(styleMode === 'scss' ? { scss: v } : { css: v })}
+                  onChange={(v) => patch({ scss: v })}
                   onRunShortcut={() => void run()}
                 />
               </div>

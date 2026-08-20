@@ -16,7 +16,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     editorFontSize: 14,
     tabSize: 2,
     wordWrap: false,
-    autoSave: true,
+    autoSave: false,
     showMinimap: true,
   },
   loaded: false,

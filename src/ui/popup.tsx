@@ -107,14 +107,19 @@ function PopupApp() {
   const patchExperiment = (project: Project, experiment: Experiment, enabled: boolean): void => {
     void experimentService.patch(experiment.id, { enabled });
     setGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        experiments: group.experiments
+      prev.map((group) => {
+        if (group.project.id !== project.id) return group;
+        const experiments = group.experiments
           .map((e) => (e.id === experiment.id ? { ...e, enabled } : e))
-          .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt),
-      })),
+          .sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.updatedAt - a.updatedAt);
+        return {
+          project: enabled && !group.project.active ? { ...group.project, active: true } : group.project,
+          experiments,
+        };
+      }),
     );
     if (enabled) {
+      if (!project.active) void projectService.setActive(project.id, true);
       void runExperimentOnProject(project, { ...experiment, enabled });
     } else {
       void removeExperimentFromProject(project, experiment.id);

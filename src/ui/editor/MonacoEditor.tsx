@@ -11,11 +11,21 @@ interface MonacoEditorProps {
   value: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
+  placeholder?: string;
   onReady?: () => void;
   onRunShortcut?: () => void;
 }
 
-export function MonacoEditor({ id, language, value, onChange, readOnly = false, onReady, onRunShortcut }: MonacoEditorProps) {
+export function MonacoEditor({
+  id,
+  language,
+  value,
+  onChange,
+  readOnly = false,
+  placeholder,
+  onReady,
+  onRunShortcut,
+}: MonacoEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monacoNs.editor.IStandaloneCodeEditor | null>(null);
   const handleRef = useRef<EditorHandle | null>(null);
@@ -50,6 +60,7 @@ export function MonacoEditor({ id, language, value, onChange, readOnly = false, 
         quickSuggestions: { other: true, comments: false, strings: true },
         fixedOverflowWidgets: true,
         readOnly,
+        placeholder,
       });
 
       editorRef.current = editor;
@@ -119,8 +130,9 @@ export function MonacoEditor({ id, language, value, onChange, readOnly = false, 
       wordWrap: settings.wordWrap ? 'on' : 'off',
       minimap: { enabled: settings.showMinimap },
       readOnly,
+      placeholder,
     });
-  }, [settings.editorFontSize, settings.tabSize, settings.wordWrap, settings.showMinimap, readOnly]);
+  }, [settings.editorFontSize, settings.tabSize, settings.wordWrap, settings.showMinimap, readOnly, placeholder]);
 
   // Apply the Monaco theme when the app theme changes.
   useEffect(() => {

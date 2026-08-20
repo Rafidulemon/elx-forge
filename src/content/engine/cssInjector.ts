@@ -11,12 +11,11 @@ function cssSelectorFor(experimentId: string): string {
 }
 
 /**
- * Returns the stylesheet content to inject. CSS mode injects the raw CSS;
- * SCSS mode injects the compiled CSS stored in `css` (compiled on save / run),
- * falling back to the raw SCSS source if no compiled output exists yet.
+ * Returns the stylesheet content to inject: the compiled CSS (SCSS source is
+ * compiled on save/run), falling back to the raw source text if no compiled
+ * output exists yet.
  */
 function styleContentOf(experiment: Experiment): string {
-  if (experiment.styleMode !== 'scss') return experiment.css;
   return experiment.css.trim() ? experiment.css : (experiment.scss ?? '');
 }
 

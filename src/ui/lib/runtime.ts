@@ -110,8 +110,11 @@ async function waitForContentScript(tabId: number, attempts = 12): Promise<void>
  * Resolves the tab that should receive injections for a project: the most
  * recently accessed existing tab matching the project's domain (activated and
  * focused), or a newly opened tab at that URL waited for to finish loading.
+ * Returns whether the tab was newly created (already fully loaded).
  */
-export async function findOrOpenProjectTab(project: Project): Promise<chrome.tabs.Tab> {
+export async function findOrOpenProjectTab(
+  project: Project,
+): Promise<{ tab: chrome.tabs.Tab; created: boolean }> {
   const target = projectUrl(project);
   if (!target) throw new Error('Project has no domain set');
 
@@ -124,22 +127,28 @@ export async function findOrOpenProjectTab(project: Project): Promise<chrome.tab
     if (existing.windowId !== undefined) {
       void chrome.windows.update(existing.windowId, { focused: true });
     }
-    return existing;
+    return { tab: existing, created: false };
   }
 
   const created = await chrome.tabs.create({ url: target, active: true });
   await waitForTabComplete(created.id!);
-  return created;
+  return { tab: created, created: true };
 }
 
-/** Runs an experiment on the tab belonging to the project's domain (opens it if needed). */
+/**
+ * Runs an experiment on the tab belonging to the project's domain. The tab is
+ * reloaded first so the page starts from a clean state (no leftovers from
+ * previous runs), then the experiment is injected. Injection is idempotent
+ * (force=false) so it is skipped when the auto-injector already applied it on
+ * load, avoiding duplicate JS/CSS.
+ */
 export async function runExperimentOnProject(project: Project, experiment: Experiment): Promise<string> {
   let target = experiment;
   if (!target.enabled) {
     await experimentService.patch(target.id, { enabled: true });
     target = { ...target, enabled: true };
   }
-  if (target.styleMode === 'scss' && target.scss) {
+  if (target.scss?.trim()) {
     const { compileScss } = await import('./scss');
     try {
       const compiled = await compileScss(target.scss);
@@ -148,18 +157,24 @@ export async function runExperimentOnProject(project: Project, experiment: Exper
         await experimentService.patch(target.id, { css: compiled });
       }
     } catch {
-      // keep whatever CSS is already stored
+      // Compiler unavailable — inject the raw text so the written code still shows.
+      target = { ...target, css: target.scss ?? '' };
+      await experimentService.patch(target.id, { css: target.scss ?? '' });
     }
   }
-  const tab = await findOrOpenProjectTab(project);
+  const { tab, created } = await findOrOpenProjectTab(project);
+  if (!created && tab.id !== undefined) {
+    await chrome.tabs.reload(tab.id);
+    await waitForTabComplete(tab.id);
+  }
   await waitForContentScript(tab.id!);
-  await runExperimentInTab(tab.id!, target, true);
+  await runExperimentInTab(tab.id!, target, false);
   return tab.url ?? '';
 }
 
 /** Picks an element on the tab belonging to the project's domain (opens it if needed). */
 export async function pickElementOnProject(project: Project): Promise<ElementPickResult | null> {
-  const tab = await findOrOpenProjectTab(project);
+  const { tab } = await findOrOpenProjectTab(project);
   await waitForContentScript(tab.id!);
   return pickElementInTab(tab.id!);
 }

@@ -85,6 +85,6 @@ export const DEFAULT_SETTINGS: Settings = {
   editorFontSize: 14,
   tabSize: 2,
   wordWrap: false,
-  autoSave: true,
+  autoSave: false,
   showMinimap: true,
 };

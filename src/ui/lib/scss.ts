@@ -37,9 +37,14 @@ function getSandboxFrame(): Promise<HTMLIFrameElement> {
 export function compileScss(source: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const requestId = crypto.randomUUID();
+    const timer = setTimeout(() => {
+      window.removeEventListener('message', onMessage);
+      reject(new Error('SCSS sandbox did not respond (timed out)'));
+    }, 8000);
     const onMessage = (event: MessageEvent<ScssResult>): void => {
       const data = event.data;
       if (!data || data.source !== MSG_SOURCE || data.type !== 'result' || data.requestId !== requestId) return;
+      clearTimeout(timer);
       window.removeEventListener('message', onMessage);
       if (data.error) reject(new Error(data.error));
       else resolve(data.css ?? '');
@@ -48,6 +53,7 @@ export function compileScss(source: string): Promise<string> {
     void getSandboxFrame()
       .then((el) => el.contentWindow?.postMessage({ source: MSG_SOURCE, type: 'compile', requestId, scss: source }, '*'))
       .catch((err) => {
+        clearTimeout(timer);
         window.removeEventListener('message', onMessage);
         reject(err instanceof Error ? err : new Error(String(err)));
       });
