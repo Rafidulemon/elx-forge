@@ -90,14 +90,13 @@ function ProjectCard({ project, onDelete, onDuplicate, onExport }: {
   const update = useProjectsStore((s) => s.update);
 
   return (
-    <div className="panel flex flex-col gap-3 p-4 transition-colors hover:border-brand/40">
+    <div className="panel group relative flex flex-col gap-3 p-4 transition-colors hover:border-brand/40">
+      <Link to={`/project/${project.id}`} className="absolute inset-0 rounded-lg" aria-label={`Open ${project.name}`} />
       <div className="flex items-start justify-between gap-2">
-        <Link to={`/project/${project.id}`} className="group min-w-0">
-          <h3 className="truncate text-[15px] font-semibold group-hover:text-brand">
-            {project.name}
-          </h3>
-        </Link>
-        <Toggle checked={project.active} onChange={(v) => void update(project.id, { active: v })} />
+        <h3 className="truncate text-[15px] font-semibold group-hover:text-brand">{project.name}</h3>
+        <div className="relative z-10">
+          <Toggle checked={project.active} onChange={(v) => void update(project.id, { active: v })} />
+        </div>
       </div>
       <p className="line-clamp-2 min-h-[32px] text-[12px] text-ink-dim">
         {project.description || 'No description'}
@@ -113,7 +112,7 @@ function ProjectCard({ project, onDelete, onDuplicate, onExport }: {
       <div className="mt-auto flex items-center justify-between text-[11px] text-ink-dim">
         <span>Updated {timeAgo(project.updatedAt)}</span>
       </div>
-      <div className="flex items-center gap-1 border-t border-line pt-2">
+      <div className="relative z-10 flex items-center gap-1 border-t border-line pt-2">
         <Button size="sm" variant="ghost" onClick={onExport} title="Export project">
           <IconDownload width={14} height={14} />
           Export
@@ -158,8 +157,8 @@ export function DashboardPage() {
   }, [projects, search, sortKey, sortDir, activeFilter]);
 
   const sortOptions = [
-    { value: 'updatedAt', label: 'Last updated' },
     { value: 'createdAt', label: 'Created' },
+    { value: 'updatedAt', label: 'Last updated' },
     { value: 'name', label: 'Name' },
   ];
 

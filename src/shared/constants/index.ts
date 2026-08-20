@@ -55,15 +55,15 @@ export const DEFAULT_EXPERIMENT_SCSS = `html {
   position: relative;
 
   &::before {
-    content: "AB test pilot CSS";
+    content: "ELX-Forge Connected";
     position: fixed;
     top: 0;
     left: 0;
     z-index: 99999999999;
-    background: #ff0000;
-    color: #ffffff;
+    background: #ff6a00ff;
+    color: #000000;
     padding: 10px;
-    border: 7px solid #269b11;
+    border: 7px solid #000000;
   }
 }`;
 

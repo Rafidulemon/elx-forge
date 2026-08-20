@@ -26,7 +26,7 @@ export const useProjectsStore = create<ProjectsState>((set) => ({
   projects: [],
   loading: false,
   search: '',
-  sortKey: 'updatedAt',
+  sortKey: 'createdAt',
   sortDir: 'desc',
   activeFilter: 'all',
 

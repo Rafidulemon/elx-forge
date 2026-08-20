@@ -1,18 +1,31 @@
 # ELX Forge
 
 A production-grade Chrome Extension (Manifest V3) for CRO engineers — inject custom
-JS & CSS into any website for A/B testing, debugging and prototyping.
+JS & CSS/SCSS into any website for A/B testing, debugging and prototyping.
+
+Built by [Echologyx](https://www.echologyx.com).
 
 ## Features
 
 - **Project & Experiment manager** — organize tests per site/domain, enable/disable, duplicate, import/export
-- **Monaco-powered code editor** — JS + CSS with syntax highlighting, formatting, auto-save
-- **Live injection** — run any experiment immediately on the active page, or let URL rules auto-inject on matching pages
+- **Monaco-powered code editor** — `index.js` + `style.css` / `style.scss` with syntax highlighting, formatting, auto-save, per-file copy, and VS Code-style snippets
+- **Domain-based auto-injection** — enabling an experiment runs it on the project's URL; disabling it stops it
+- **Runs on the project URL** — clicking **Run** injects into the project's domain (opens the tab if needed) and enables the experiment
+- **Starter templates** — every new experiment ships with a `waitForElem` JS boilerplate and an orange/black SCSS banner (SCSS is the default style mode)
+- **Snippet system** — `clg`, `qs`, `ife`, `fori`, `wait`, `df`, `mq`, and more for JS/CSS/SCSS, with Tab-placeholder navigation
 - **Element picker** — click any element to generate a CSS selector / XPath and drop a snippet into the editor
 - **Console panel** — captures `console.log`, page errors and injection events streamed from the injected page in real time
-- **Popup quick-run** — see which experiments match the current page and run them from the toolbar
-- **Background badge** — shows the number of matching experiments for the active tab
-- **Light & dark themes** — with a CSS-variable design system
+- **Popup quick-run** — the extension popup lists every project targeting the current site with all its experiments; toggle experiments and the project on/off, run, and reload the page from the popup
+- **Background badge** — shows the number of active experiments for the active tab
+- **Orange & black theme** — with a CSS-variable design system
+
+## Key Behaviors
+
+- **Enable = run, disable = stop.** Flipping an experiment's toggle on injects it on the project's URL immediately; flipping it off removes its CSS and stops auto-injection.
+- **Run enables.** Clicking **Run** also turns the experiment's enable toggle on.
+- **Tests target the project URL.** Runs (and the element picker) use the domain set when the project was created, not the currently active tab.
+- **Deactivating a project disables its experiments.** Reactivating the project leaves them off — each must be manually re-enabled.
+- **SCSS is the default style editor.** Each experiment can be authored as `style.css` or `style.scss` via the CSS/SCSS toggle in the editor toolbar.
 
 ## Tech Stack
 
@@ -20,7 +33,7 @@ JS & CSS into any website for A/B testing, debugging and prototyping.
 | --- | --- |
 | Language | TypeScript 5 |
 | UI | React 19, React Router (HashRouter), Zustand |
-| Code editor | Monaco Editor (lazy-loaded, web workers) |
+| Code editor | Monaco Editor (lazy-loaded, web workers, custom snippet providers) |
 | Styling | Tailwind CSS 3 + CSS variables |
 | Build | Vite 6 (dual builds: UI + IIFE scripts) |
 | Extension | Chrome Manifest V3, Service Worker |
@@ -39,11 +52,16 @@ JS & CSS into any website for A/B testing, debugging and prototyping.
 ├── scripts/
 │   └── build-scripts.mjs      # builds background/content/injected as IIFE
 ├── src/
-│   ├── shared/                # types, constants, storage services, utils, helpers
+│   ├── shared/                # types, constants (incl. starter templates), storage services, utils
 │   ├── injected/              # MAIN-world bridge script (console patch + window.ELX)
 │   ├── content/               # content script: bridge, injection engine, picker, url watcher
 │   ├── background/            # service worker: message router, console relay, badge
-│   └── ui/                    # React app (Studio) + popup
+│   └── ui/
+│       ├── editor/            # Monaco wrapper + snippet system (registerSnippets.ts, snippets/)
+│       ├── components/        # layout, panels, UI primitives
+│       ├── pages/             # Dashboard, Project, Experiment editor, Console, Settings
+│       ├── store/             # zustand stores synced with chrome.storage
+│       └── popup.tsx          # toolbar popup (site projects, toggles, run/refresh)
 ```
 
 ## Getting Started
@@ -80,16 +98,24 @@ npm run watch:ui     # rebuild UI on changes
 
 1. Open a website (e.g. `https://example.com`) in its own tab.
 2. Click the extension icon → **Open ELX Forge**.
-3. Create a project (name + domain) → open it → **New Experiment**.
-4. Add JS (e.g. `console.log("Testing ELX Forge")`) and/or CSS (e.g. `body { background: lightyellow; }`).
-5. Click **Run** — the active page (or the most recently used webpage tab) gets the changes immediately.
+3. Create a project with the site's domain → open it → **New Experiment**.
+4. The JS editor ships with the `waitForElem` starter and the style editor with the SCSS banner.
+5. Click **Run** — the project's URL tab opens/activates and gets the changes; the experiment is enabled automatically.
 6. Switch to the editor's **Console** tab to see `bridge:ready`, `js:inject`, `css:inject` events and your `console.log` output.
 
-### URL-rule auto-injection
+### Enable / disable from the popup
 
-1. In an experiment, open the **URL Rules** tab.
-2. Add a rule (`Starts with`, `Contains`, `Regex`, `Wildcard`, …) matching the target page and click **Test**.
-3. Reload the target page — ELX Forge auto-injects the experiment and the toolbar badge shows the match count.
+1. On the site's page, click the extension icon — every project targeting that domain is listed with all of its experiments.
+2. Toggle an experiment **on** to run it on the project's URL, or **off** to stop it.
+3. Use the refresh button to reload the project's page after toggling.
+4. Deactivating the project's own toggle disables all of its experiments at once.
+
+### Auto-injection
+
+An experiment runs automatically on any page belonging to its project's domain while
+it is **enabled** and its project is **active**. No URL rules are required — the domain
+set at project creation is the trigger. URL rules are still available for testing
+specific pages from the experiment's **URL Rules** tab.
 
 ### Notes
 
